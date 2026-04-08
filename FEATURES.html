@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정부 지원금 AI 매칭 서비스 — 구현 완료 기능</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', -apple-system, sans-serif;
+    background: #030712;
+    color: #e5e7eb;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    margin-bottom: 60px;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, rgba(139,92,246,0.05) 40%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(6,182,212,0.15);
+    background: rgba(6,182,212,0.08);
+    color: #22d3ee;
+    margin-bottom: 20px;
+  }
+
+  .badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #22d3ee;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    color: #9ca3af;
+    font-size: 15px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .hero-url {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 28px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 8px 30px rgba(6,182,212,0.2);
+  }
+  .hero-url:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(6,182,212,0.3); }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 50px;
+  }
+
+  .stat-card {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .stat-value.cyan { color: #22d3ee; }
+  .stat-value.violet { color: #a78bfa; }
+  .stat-value.pink { color: #f472b6; }
+  .stat-value.emerald { color: #34d399; }
+
+  .stat-label { font-size: 12px; color: #6b7280; }
+
+  /* Section */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .section-num {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .section-num.cyan { background: linear-gradient(135deg, rgba(6,182,212,0.3), rgba(6,182,212,0.1)); }
+  .section-num.violet { background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(139,92,246,0.1)); }
+  .section-num.pink { background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.1)); }
+  .section-num.emerald { background: linear-gradient(135deg, rgba(52,211,153,0.3), rgba(52,211,153,0.1)); }
+  .section-num.amber { background: linear-gradient(135deg, rgba(251,191,36,0.3), rgba(251,191,36,0.1)); }
+  .section-num.blue { background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(59,130,246,0.1)); }
+  .section-num.rose { background: linear-gradient(135deg, rgba(244,63,94,0.3), rgba(244,63,94,0.1)); }
+  .section-num.teal { background: linear-gradient(135deg, rgba(20,184,166,0.3), rgba(20,184,166,0.1)); }
+  .section-num.indigo { background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(99,102,241,0.1)); }
+
+  .section-title {
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .section-desc {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* Feature table */
+  .feature-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .feature-table th {
+    text-align: left;
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .feature-table td {
+    padding: 12px 20px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: top;
+  }
+
+  .feature-table tr:last-child td { border-bottom: none; }
+
+  .feature-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .feature-name {
+    font-weight: 600;
+    color: #f3f4f6;
+    white-space: nowrap;
+  }
+
+  .feature-desc { color: #9ca3af; }
+
+  /* Tag */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px;
+  }
+
+  .tag.cyan { background: rgba(6,182,212,0.1); color: #22d3ee; border: 1px solid rgba(6,182,212,0.15); }
+  .tag.violet { background: rgba(139,92,246,0.1); color: #a78bfa; border: 1px solid rgba(139,92,246,0.15); }
+  .tag.pink { background: rgba(236,72,153,0.1); color: #f472b6; border: 1px solid rgba(236,72,153,0.15); }
+  .tag.emerald { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.15); }
+  .tag.amber { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.15); }
+  .tag.gray { background: rgba(255,255,255,0.05); color: #9ca3af; border: 1px solid rgba(255,255,255,0.08); }
+
+  /* Pricing table */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .pricing-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+    position: relative;
+  }
+
+  .pricing-card.popular { border-color: rgba(6,182,212,0.2); }
+  .pricing-card.popular::before {
+    content: '인기';
+    position: absolute;
+    top: -10px; left: 50%; transform: translateX(-50%);
+    padding: 3px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .pricing-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .pricing-price { font-size: 28px; font-weight: 900; margin: 8px 0; }
+  .pricing-price span { font-size: 13px; color: #6b7280; font-weight: 400; }
+  .pricing-feature {
+    font-size: 12px;
+    color: #9ca3af;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .pricing-feature:last-child { border-bottom: none; }
+
+  /* API/Component cards */
+  .compact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+
+  .compact-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .compact-card .method {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .method.post { background: rgba(52,211,153,0.1); color: #34d399; }
+  .method.get { background: rgba(59,130,246,0.1); color: #60a5fa; }
+
+  .compact-card .path {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: #d1d5db;
+    font-weight: 500;
+  }
+
+  .compact-card .desc-small {
+    font-size: 11px;
+    color: #6b7280;
+  }
+
+  /* Tech stack */
+  .tech-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .tech-item {
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 60px;
+    padding-top: 30px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    text-align: center;
+    color: #4b5563;
+    font-size: 12px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .pricing-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 30px; }
+    .compact-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="badge"><span class="dot"></span> 구현 완료</div>
+    <h1><span class="gradient-text">정부 지원금 AI 매칭</span></h1>
+    <p>AI가 내 사업에 맞는 정부 지원사업을 찾아주고, 공식 양식에 맞춰 신청서까지 작성합니다.</p>
+    <a href="https://app-seven-inky-55.vercel.app" target="_blank" class="hero-url">서비스 바로가기 &rarr;</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value cyan">6</div>
+      <div class="stat-label">페이지</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value violet">5</div>
+      <div class="stat-label">API 엔드포인트</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value pink">40+</div>
+      <div class="stat-label">기능</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value emerald">30</div>
+      <div class="stat-label">시드 데이터</div>
+    </div>
+  </div>
+
+  <!-- 1. AI 매칭 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num cyan">1</div>
+      <div>
+        <div class="section-title">AI 맞춤형 지원사업 매칭</div>
+        <div class="section-desc">핵심 기능 &middot; 페이지: / &rarr; /results &rarr; /grants/[id]</div>
+      </div>
+    </div>
+    <div class="glass">
+      <table class="feature-table">
+        <thead><tr><th>기능</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td class="feature-name">조건 기반 매칭</td><td class="feature-desc">업종, 매출, 지역, 업력, 대표자 나이 5가지 조건으로 AI 매칭</td></tr>
+          <tr><td class="feature-name">AI 자동 분석 (파일)</td><td class="feature-desc">사업자등록증/서류 이미지 업로드 &rarr; Gemini Vision 자동 분석</td></tr>
+          <tr><td class="feature-name">AI 자동 분석 (텍스트)</td><td class="feature-desc">사업 설명 자유 입력 &rarr; AI가 5가지 조건 자동 추출</td></tr>
+          <tr><td class="feature-name">듀얼 입력 탭</td><td class="feature-desc">"AI 자동 분석" 탭 + "직접 입력" 탭 선택 가능</td></tr>
+          <tr><td class="feature-name">드래그앤드롭</td><td class="feature-desc">파일 드래그앤드롭 업로드 지원</td></tr>
+          <tr><td class="feature-name">매칭 스코어링</td><td class="feature-desc"><span class="tag emerald">높음</span> <span class="tag amber">보통</span> <span class="tag gray">낮음</span> 3단계 점수</td></tr>
+          <tr><td class="feature-name">D-day 표시</td><td class="feature-desc">마감일까지 남은 일수 자동 계산 &middot; 색상 구분</td></tr>
+          <tr><td class="feature-name">상세 AI 분석</td><td class="feature-desc">합격 가능성 + 전략 제안 + 리스크 분석</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. AI 신청서 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num violet">2</div>
+      <div>
+        <div class="section-title">AI 신청서 생성</div>
+        <div class="section-desc">BM 기능 &middot; 건당 29,900원 &middot; 페이지: /generate</div>
+      </div>
+    </div>
+    <div class="glass">
+      <table class="feature-table">
+        <thead><tr><th>기능</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td class="feature-name">공식 양식 자동 적용</td><td class="feature-desc">예비창업패키지, 초기창업패키지 등 사업별 양식 매칭 (6개 섹션)</td></tr>
+          <tr><td class="feature-name">파일 업로드</td><td class="feature-desc">사업자등록증, IR자료 등 첨부 &rarr; AI가 사업 정보 추출</td></tr>
+          <tr><td class="feature-name">필수 정보 체크리스트</td><td class="feature-desc">지원사업별 12~14개 필수 항목 자동 표시</td></tr>
+          <tr><td class="feature-name">자동 체크 기능</td><td class="feature-desc">업로드/입력 내용에서 필수 항목 포함 여부 AI가 <span class="tag emerald">&#10003;</span> <span class="tag pink">&#10007;</span> 자동 확인</td></tr>
+          <tr><td class="feature-name">누락 항목 안내</td><td class="feature-desc">미확인 항목에 대해 추가 작성 가이드 제공</td></tr>
+          <tr><td class="feature-name">사업계획서 생성</td><td class="feature-desc">AI가 공식 양식에 맞춘 완전한 초안 작성 (~30초)</td></tr>
+          <tr><td class="feature-name">복사 / 재생성</td><td class="feature-desc">클립보드 복사, 다시 생성 지원</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+      <span class="tag cyan">예비창업패키지 양식</span>
+      <span class="tag violet">초기창업패키지 양식</span>
+      <span class="tag gray">범용 정부지원사업 양식</span>
+    </div>
+  </div>
+
+  <!-- 3. 전문가 매칭 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num pink">3</div>
+      <div>
+        <div class="section-title">전문가 매칭</div>
+        <div class="section-desc">BM 기능 &middot; 합격 시 10~15% 수수료 &middot; 페이지: /experts</div>
+      </div>
+    </div>
+    <div class="glass">
+      <table class="feature-table">
+        <thead><tr><th>기능</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td class="feature-name">분야별 전문가</td><td class="feature-desc">변리사(R&D) &middot; 세무사(창업) &middot; 노무사(고용) &middot; 컨설턴트(소상공인)</td></tr>
+          <tr><td class="feature-name">프로필 카드</td><td class="feature-desc">합격률, 진행 건수, 전문 분야 태그, 상담 신청 CTA</td></tr>
+          <tr><td class="feature-name">이용 절차 안내</td><td class="feature-desc">전문가 선택 &rarr; 무료 상담 &rarr; 대행 진행 &rarr; 합격 시 결제</td></tr>
+          <tr><td class="feature-name">전문가 등록</td><td class="feature-desc">전문가 등록 문의 CTA</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. 요금제 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num emerald">4</div>
+      <div>
+        <div class="section-title">구독 요금제</div>
+        <div class="section-desc">BM 기능 &middot; 3단 구독 + 건당 서비스 &middot; 페이지: /pricing</div>
+      </div>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-name">무료</div>
+        <div class="pricing-price">0<span>원</span></div>
+        <div class="pricing-feature">AI 매칭 (결과 3건)</div>
+        <div class="pricing-feature">사업자등록증 AI 분석</div>
+        <div class="pricing-feature" style="color:#4b5563;text-decoration:line-through;">상세 자격 분석</div>
+        <div class="pricing-feature" style="color:#4b5563;text-decoration:line-through;">AI 신청서 생성</div>
+      </div>
+      <div class="pricing-card popular">
+        <div class="pricing-name">프리미엄</div>
+        <div class="pricing-price" style="color:#22d3ee;">9,900<span>원/월</span></div>
+        <div class="pricing-feature">무제한 매칭 + 상세 분석</div>
+        <div class="pricing-feature">마감 D-7, D-3, D-1 알림</div>
+        <div class="pricing-feature">AI 신청서 월 3건</div>
+        <div class="pricing-feature">전문가 매칭 할인 10%</div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-name">비즈니스</div>
+        <div class="pricing-price" style="color:#a78bfa;">49,000<span>원/월</span></div>
+        <div class="pricing-feature">프리미엄 전체 포함</div>
+        <div class="pricing-feature">AI 신청서 무제한</div>
+        <div class="pricing-feature">전문가 1:1 전담</div>
+        <div class="pricing-feature">대행 수수료 50% 할인</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;justify-content:center;">
+      <span class="tag violet">AI 신청서 29,900원/건</span>
+      <span class="tag pink">전문가 대행 10~15%</span>
+    </div>
+  </div>
+
+  <!-- 5. 데이터 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num amber">5</div>
+      <div>
+        <div class="section-title">데이터 & 인프라</div>
+        <div class="section-desc">공공API 연동 + 시드 데이터 + 캐싱</div>
+      </div>
+    </div>
+    <div class="glass">
+      <table class="feature-table">
+        <thead><tr><th>기능</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td class="feature-name">기업마당 공공API</td><td class="feature-desc">apis.data.go.kr/B552735 실시간 지원사업 크롤링</td></tr>
+          <tr><td class="feature-name">시드 데이터 30건</td><td class="feature-desc">실제 정부 지원사업 데이터 하드코딩 (MVP)</td></tr>
+          <tr><td class="feature-name">1시간 캐싱</td><td class="feature-desc">API + 시드 데이터 병합, 메모리 캐시</td></tr>
+          <tr><td class="feature-name">만료 자동 필터</td><td class="feature-desc">마감일 지난 사업 자동 제외</td></tr>
+          <tr><td class="feature-name">마감일순 정렬</td><td class="feature-desc">임박한 사업 우선 표시</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. AI 엔진 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num blue">6</div>
+      <div>
+        <div class="section-title">AI 엔진</div>
+        <div class="section-desc">Gemini Primary + Claude Fallback 이중 구조</div>
+      </div>
+    </div>
+    <div class="glass">
+      <table class="feature-table">
+        <thead><tr><th>구분</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td class="feature-name"><span class="tag cyan">Primary</span></td><td class="feature-desc">Gemini 2.0 Flash &mdash; 무료 티어 활용</td></tr>
+          <tr><td class="feature-name"><span class="tag violet">Fallback</span></td><td class="feature-desc">Claude Sonnet 4 &mdash; Gemini 실패 시 자동 전환</td></tr>
+          <tr><td class="feature-name">Vision AI</td><td class="feature-desc">Gemini Vision &mdash; 사업자등록증 이미지 OCR + 분석</td></tr>
+          <tr><td class="feature-name">매칭 분석</td><td class="feature-desc">자격 요건 vs 사용자 조건 비교 &rarr; 스코어링</td></tr>
+          <tr><td class="feature-name">상세 분석</td><td class="feature-desc">합격 가능성, 전략 제안, 리스크 분석</td></tr>
+          <tr><td class="feature-name">문서 생성</td><td class="feature-desc">공식 양식 준수 사업계획서 작성</td></tr>
+          <tr><td class="feature-name">정보 체크</td><td class="feature-desc">업로드 문서에서 필수 항목 포함 여부 자동 확인</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. UI/UX -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num rose">7</div>
+      <div>
+        <div class="section-title">UI/UX 디자인</div>
+        <div class="section-desc">글래스모피즘 다크 테마 + 반응형</div>
+      </div>
+    </div>
+    <div class="glass">
+      <table class="feature-table">
+        <thead><tr><th>기능</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td class="feature-name">글래스모피즘</td><td class="feature-desc">backdrop-blur + 반투명 카드 + 노이즈 텍스처</td></tr>
+          <tr><td class="feature-name">그라디언트 액센트</td><td class="feature-desc">cyan &rarr; violet &rarr; pink 3색 그라디언트</td></tr>
+          <tr><td class="feature-name">반응형 디자인</td><td class="feature-desc">모바일 / 태블릿 / 데스크톱 대응</td></tr>
+          <tr><td class="feature-name">네비게이션</td><td class="feature-desc">Header + Footer (AI 신청서 / 전문가 / 요금제)</td></tr>
+          <tr><td class="feature-name">Shine 효과</td><td class="feature-desc">카드 hover 시 빛 반사 애니메이션</td></tr>
+          <tr><td class="feature-name">Float 애니메이션</td><td class="feature-desc">히어로 섹션 부유 효과</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 8. API -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num teal">8</div>
+      <div>
+        <div class="section-title">API 엔드포인트</div>
+        <div class="section-desc">5개 서버리스 API Routes</div>
+      </div>
+    </div>
+    <div class="compact-grid">
+      <div class="compact-card">
+        <span class="method post">POST</span>
+        <div>
+          <div class="path">/api/match</div>
+          <div class="desc-small">조건 매칭 &rarr; AI 분석 결과</div>
+        </div>
+      </div>
+      <div class="compact-card">
+        <span class="method get">GET</span>
+        <div>
+          <div class="path">/api/grants</div>
+          <div class="desc-small">지원사업 상세 + AI 자격 분석</div>
+        </div>
+      </div>
+      <div class="compact-card">
+        <span class="method post">POST</span>
+        <div>
+          <div class="path">/api/analyze-doc</div>
+          <div class="desc-small">파일/텍스트 &rarr; 사업 정보 추출</div>
+        </div>
+      </div>
+      <div class="compact-card">
+        <span class="method post">POST</span>
+        <div>
+          <div class="path">/api/generate-doc</div>
+          <div class="desc-small">양식별 사업계획서 생성</div>
+        </div>
+      </div>
+      <div class="compact-card">
+        <span class="method post">POST</span>
+        <div>
+          <div class="path">/api/check-doc</div>
+          <div class="desc-small">필수 정보 체크리스트 자동 확인</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Tech Stack -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num indigo">9</div>
+      <div>
+        <div class="section-title">기술 스택</div>
+        <div class="section-desc">Next.js 16 기반 풀스택 서버리스</div>
+      </div>
+    </div>
+    <div class="tech-stack">
+      <div class="tech-item" style="color:#22d3ee;">Next.js 16.2</div>
+      <div class="tech-item" style="color:#60a5fa;">React 19</div>
+      <div class="tech-item" style="color:#38bdf8;">TypeScript</div>
+      <div class="tech-item" style="color:#06b6d4;">Tailwind CSS</div>
+      <div class="tech-item" style="color:#fbbf24;">Gemini 2.0 Flash</div>
+      <div class="tech-item" style="color:#a78bfa;">Claude Sonnet 4</div>
+      <div class="tech-item" style="color:#34d399;">Vercel</div>
+      <div class="tech-item" style="color:#f472b6;">BizInfo API</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>정부 지원금 AI 매칭 서비스 &middot; 2026.04 &middot; Next.js 16 + Gemini + Claude</p>
+    <p style="margin-top:8px;">
+      <a href="https://app-seven-inky-55.vercel.app" target="_blank" style="color:#22d3ee;text-decoration:none;">app-seven-inky-55.vercel.app</a>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>
