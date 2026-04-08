@@ -1,121 +1,121 @@
-# PREMORTEM — Failure Analysis
+# PREMORTEM — 사전 실패 분석
 
-> "It's 6 months from now. The project has failed. What went wrong?"
+> "지금으로부터 6개월 후, 프로젝트가 실패했다. 무엇이 잘못되었는가?"
 
-## Scenario 1: AI Hallucination Damages Trust
+## 시나리오 1: AI 환각이 신뢰를 훼손한다
 
-**What happened**: The AI matched a user to a grant they clearly didn't qualify for (e.g., manufacturing-only program recommended to a service business). The user wasted days preparing an application, got rejected, and posted a negative review.
+**상황**: AI가 사용자를 자격이 없는 지원사업에 매칭했다 (예: 제조업 전용 프로그램을 서비스업에 추천). 사용자가 며칠간 서류를 준비했지만 탈락하고, 부정적 후기를 남겼다.
 
-**Likelihood**: High
+**발생 가능성**: 높음
 
-**Impact**: Critical — trust is our core product
+**영향도**: 치명적 — 신뢰가 우리의 핵심 제품이다
 
-**Mitigation**:
-- Display matching confidence levels transparently (High/Medium/Low)
-- Add disclaimers: "AI analysis is a guide, not a guarantee"
-- Cross-validate AI output against hard eligibility rules (revenue caps, industry codes)
-- Let users report incorrect matches to improve the model
+**대응 방안**:
+- 매칭 신뢰도를 투명하게 표시 (높음/보통/낮음)
+- 면책 조항 추가: "AI 분석은 참고용이며 보장이 아닙니다"
+- 하드 룰(매출 상한, 업종 코드)로 AI 결과를 교차 검증
+- 사용자가 잘못된 매칭을 신고할 수 있는 기능 제공
 
-## Scenario 2: Public API Becomes Unreliable
+## 시나리오 2: 공공API가 불안정해진다
 
-**What happened**: The 기업마당 API (apis.data.go.kr) changed its schema, went offline, or rate-limited us. Our grant database became stale, showing expired programs or missing new ones.
+**상황**: 기업마당 API(apis.data.go.kr)가 스키마를 변경하거나, 다운되거나, 요청을 제한했다. 지원사업 데이터베이스가 오래되어 만료된 프로그램이 표시되거나 새 프로그램이 누락되었다.
 
-**Likelihood**: Medium-High (government APIs are notoriously unstable)
+**발생 가능성**: 중-높음 (정부 API는 불안정하기로 악명 높다)
 
-**Impact**: High — core data source
+**영향도**: 높음 — 핵심 데이터 소스
 
-**Mitigation**:
-- Maintain curated seed data (30 programs) as fallback
-- Cache API responses with 1-hour TTL
-- Automatic expired-program filtering by deadline
-- Monitor API health; alert on failures
-- Plan secondary data sources (web scraping as backup)
+**대응 방안**:
+- 큐레이션된 시드 데이터 (30개 프로그램)를 폴백으로 유지
+- API 응답을 1시간 TTL로 캐시
+- 마감일 기준 만료 프로그램 자동 필터링
+- API 상태 모니터링; 장애 시 알림
+- 보조 데이터 소스 계획 (웹 스크래핑 백업)
 
-## Scenario 3: No One Uses the Application Generator
+## 시나리오 3: 아무도 신청서 생성기를 사용하지 않는다
 
-**What happened**: Users find matching useful but don't trust AI-generated business plans. They use us for discovery but write applications manually or hire consultants anyway.
+**상황**: 사용자들이 매칭 기능은 유용하게 쓰지만 AI가 작성한 사업계획서는 신뢰하지 않는다. 발견용으로만 쓰고 신청서는 직접 쓰거나 컨설턴트를 고용한다.
 
-**Likelihood**: Medium
+**발생 가능성**: 중간
 
-**Impact**: High — this is our primary revenue feature
+**영향도**: 높음 — 핵심 수익 기능
 
-**Mitigation**:
-- Frame AI output as a "draft" / "starting point," not a final document
-- Show checklist of what's included vs. missing
-- Allow iterative revision (revise-doc API exists)
-- Offer expert review as an upsell (expert matching feature)
+**대응 방안**:
+- AI 결과물을 "최종본"이 아닌 "초안"/"출발점"으로 포지셔닝
+- 포함된 항목과 누락된 항목의 체크리스트 표시
+- 반복적 수정 허용 (revise-doc API 존재)
+- 전문가 검토를 업셀로 제공 (전문가 매칭 기능)
 
-## Scenario 4: Free Tier Attracts Users But No One Converts
+## 시나리오 4: 무료 사용자만 모이고 전환이 안 된다
 
-**What happened**: 95% of users stay on the free plan. The 3-result limit isn't painful enough, or the premium features aren't compelling enough.
+**상황**: 95%의 사용자가 무료 플랜에 머문다. 3건 제한이 충분히 불편하지 않거나, 프리미엄 기능이 충분히 매력적이지 않다.
 
-**Likelihood**: Medium
+**발생 가능성**: 중간
 
-**Impact**: High — unsustainable business model
+**영향도**: 높음 — 지속 불가능한 비즈니스 모델
 
-**Mitigation**:
-- Track conversion funnel metrics from day one
-- A/B test free tier limits (3 results vs. 5 vs. 1)
-- Make the "unlock full analysis" CTA contextually compelling
-- Consider usage-based pricing instead of subscription
+**대응 방안**:
+- 첫날부터 전환 퍼널 지표를 추적
+- 무료 제한 A/B 테스트 (3건 vs 5건 vs 1건)
+- "전체 분석 보기" CTA를 맥락적으로 매력적으로 구성
+- 구독 대신 사용량 기반 과금 검토
 
-## Scenario 5: Legal/Compliance Risk with Government Data
+## 시나리오 5: 정부 데이터 관련 법적/규정 리스크
 
-**What happened**: Displaying government program information in a commercial context raises questions about data usage rights, or the government objects to AI-generated applications being submitted.
+**상황**: 정부 프로그램 정보를 상업적 맥락에서 표시하는 것이 데이터 사용권에 대한 의문을 제기하거나, 정부가 AI 생성 신청서 제출에 이의를 제기한다.
 
-**Likelihood**: Low-Medium
+**발생 가능성**: 낮음-중간
 
-**Impact**: Critical if it happens
+**영향도**: 발생 시 치명적
 
-**Mitigation**:
-- Verify 공공데이터포털 open data license terms
-- Clearly label AI-generated content as drafts
-- Never auto-submit on behalf of users
-- Consult legal counsel before scaling
+**대응 방안**:
+- 공공데이터포털 오픈 데이터 라이선스 조건 확인
+- AI 생성 콘텐츠를 초안으로 명확히 표시
+- 사용자 대신 자동 제출하지 않음
+- 규모 확대 전 법률 자문
 
-## Scenario 6: Team Coordination Failure
+## 시나리오 6: 팀 협업 실패
 
-**What happened**: Uneven contribution across team members led to knowledge silos. One person built everything; others couldn't maintain or extend it.
+**상황**: 팀원 간 불균등한 기여로 지식 사일로가 생겼다. 한 사람이 모든 것을 만들었고, 다른 사람들은 유지보수하거나 확장할 수 없게 되었다.
 
-**Likelihood**: Medium
+**발생 가능성**: 중간
 
-**Impact**: Medium — affects long-term sustainability
+**영향도**: 중간 — 장기적 지속가능성에 영향
 
-**Mitigation**:
-- Document architecture and API contracts clearly
-- Assign specific, independent tasks per team member
-- Require code review on all PRs
-- Keep components modular and well-separated
+**대응 방안**:
+- 아키텍처와 API 규약을 명확히 문서화
+- 팀원별 독립적이고 구체적인 작업 배정
+- 모든 PR에 코드 리뷰 필수화
+- 컴포넌트를 모듈화하고 잘 분리된 상태 유지
 
-## Scenario 7: AI Cost Explosion
+## 시나리오 7: AI 비용 폭발
 
-**What happened**: As users grow, Gemini API / Claude API costs spike. Free tier users generate significant AI compute cost with no revenue offset.
+**상황**: 사용자가 증가하면서 Gemini API / Claude API 비용이 급증했다. 무료 사용자들이 수익 없이 상당한 AI 연산 비용을 발생시켰다.
 
-**Likelihood**: Medium (at scale)
+**발생 가능성**: 중간 (규모 확대 시)
 
-**Impact**: High — margin destruction
+**영향도**: 높음 — 마진 파괴
 
-**Mitigation**:
-- Gemini 2.0 Flash as primary (free tier / low cost)
-- Claude as fallback only, not default
-- Cache common AI responses
-- Rate-limit free tier AI calls
-- Monitor cost-per-user metrics
+**대응 방안**:
+- Gemini 2.0 Flash를 기본으로 사용 (무료 티어 / 저비용)
+- Claude는 폴백으로만, 기본으로 사용하지 않음
+- 빈번한 AI 응답 캐시
+- 무료 티어 AI 호출 횟수 제한
+- 사용자당 비용 지표 모니터링
 
-## Risk Priority Matrix
+## 리스크 우선순위 매트릭스
 
-| Risk | Likelihood | Impact | Priority |
-|------|-----------|--------|----------|
-| AI hallucination | High | Critical | P0 |
-| API reliability | Medium-High | High | P0 |
-| Low conversion | Medium | High | P1 |
-| No doc generator adoption | Medium | High | P1 |
-| AI cost explosion | Medium | High | P1 |
-| Team coordination | Medium | Medium | P2 |
-| Legal/compliance | Low-Medium | Critical | P2 |
+| 리스크 | 발생 가능성 | 영향도 | 우선순위 |
+|--------|------------|--------|----------|
+| AI 환각 | 높음 | 치명적 | P0 |
+| API 안정성 | 중-높음 | 높음 | P0 |
+| 낮은 전환율 | 중간 | 높음 | P1 |
+| 신청서 생성기 미사용 | 중간 | 높음 | P1 |
+| AI 비용 폭발 | 중간 | 높음 | P1 |
+| 팀 협업 | 중간 | 중간 | P2 |
+| 법적/규정 | 낮음-중간 | 치명적 | P2 |
 
-## Top 3 Actions from Premortem
+## 프리모템에서 도출된 Top 3 액션
 
-1. **Add eligibility hard-rule validation** layer on top of AI scoring (prevents hallucination)
-2. **Build API health monitoring** with automatic fallback to seed data
-3. **Instrument conversion funnel** from first visit to paid feature usage
+1. **AI 스코어링 위에 자격 하드 룰 검증 레이어 추가** (환각 방지)
+2. **API 상태 모니터링 구축** + 시드 데이터 자동 폴백
+3. **전환 퍼널 계측** — 첫 방문부터 유료 기능 사용까지

@@ -1,74 +1,74 @@
-# WHYTREE — Why Tree Analysis
+# WHYTREE — Why Tree 분석
 
-## Root Question
+## 핵심 질문
 
-**Why does this project need to exist?**
+**왜 이 프로젝트가 존재해야 하는가?**
 
 ```
-Why do small businesses miss government subsidies?
-├── Why? Information is fragmented
-│   ├── Why? 100+ programs across dozens of portals
-│   │   ├── Why? Each ministry runs its own platform
-│   │   └── Why? No unified search standard exists
-│   └── Why? Program descriptions use bureaucratic jargon
-│       └── Why? Written for administrators, not applicants
+왜 소기업들은 정부 보조금을 놓치는가?
+├── 왜? 정보가 분산되어 있다
+│   ├── 왜? 100개 이상의 프로그램이 수십 개 포털에 흩어져 있다
+│   │   ├── 왜? 각 부처가 자체 플랫폼을 운영한다
+│   │   └── 왜? 통합 검색 표준이 존재하지 않는다
+│   └── 왜? 프로그램 설명이 관료적 용어로 작성되어 있다
+│       └── 왜? 신청자가 아닌 행정가를 위해 작성되었다
 │
-├── Why? Eligibility is hard to determine
-│   ├── Why? Each program has unique, complex criteria
-│   │   ├── Why? Criteria span industry, revenue, region, age, years in business
-│   │   └── Why? Criteria change every funding cycle
-│   └── Why? Business owners don't know their own "profile" in government terms
-│       └── Why? Mapping real business info to eligibility categories requires expertise
+├── 왜? 자격 요건 판단이 어렵다
+│   ├── 왜? 각 프로그램마다 고유하고 복잡한 기준이 있다
+│   │   ├── 왜? 기준이 업종, 매출, 지역, 나이, 업력 등 다양하다
+│   │   └── 왜? 기준이 매 공모 주기마다 바뀐다
+│   └── 왜? 사업주가 정부 기준으로 본 자신의 "프로필"을 모른다
+│       └── 왜? 실제 사업 정보를 자격 카테고리로 변환하려면 전문성이 필요하다
 │
-├── Why? Application process is intimidating
-│   ├── Why? Each program demands a different document format
-│   │   └── Why? 예비창업패키지 vs 초기창업패키지 have completely different templates
-│   ├── Why? Writing a business plan takes 20+ hours
-│   │   └── Why? Applicants rewrite from scratch each time
-│   └── Why? Professional consultants charge ₩500K–₩2M per application
-│       └── Why? Only large firms can afford this
+├── 왜? 신청 절차가 부담스럽다
+│   ├── 왜? 각 프로그램마다 다른 문서 양식을 요구한다
+│   │   └── 왜? 예비창업패키지 vs 초기창업패키지는 완전히 다른 템플릿이다
+│   ├── 왜? 사업계획서 작성에 20시간 이상 걸린다
+│   │   └── 왜? 신청자는 매번 처음부터 다시 쓴다
+│   └── 왜? 전문 컨설턴트 비용이 50~200만원이다
+│       └── 왜? 대기업만 이 비용을 감당할 수 있다
 │
-└── Why? Time pressure compounds everything
-    ├── Why? Deadlines are scattered and easy to miss
-    │   └── Why? No centralized deadline tracking
-    └── Why? By the time you find a program, the window may be closed
-        └── Why? Discovery → Eligibility check → Application takes weeks manually
+└── 왜? 시간 압박이 모든 것을 악화시킨다
+    ├── 왜? 마감일이 흩어져 있어 놓치기 쉽다
+    │   └── 왜? 중앙화된 마감일 추적 시스템이 없다
+    └── 왜? 프로그램을 발견했을 때 이미 접수 기간이 끝나 있다
+        └── 왜? 발견 → 자격 확인 → 신청까지 수동으로 수주가 걸린다
 ```
 
-## Key Insights from the Why Tree
+## Why Tree에서 도출된 핵심 인사이트
 
-### Insight 1: The Core Problem is Information Asymmetry
+### 인사이트 1: 핵심 문제는 정보 비대칭이다
 
-The subsidies exist. The businesses qualify. But the two sides can't find each other. This is a **matching problem**, not a funding problem.
+보조금은 존재한다. 기업은 자격이 있다. 하지만 양쪽이 서로를 찾지 못한다. 이것은 **자금 부족 문제가 아니라 매칭 문제**이다.
 
-→ **Solution**: AI-powered matching engine that takes 5 business attributes and scores against all available programs.
+→ **해결책**: 5가지 사업 속성을 입력받아 모든 가용 프로그램에 대해 점수를 매기는 AI 매칭 엔진.
 
-### Insight 2: Understanding Eligibility Requires Domain Translation
+### 인사이트 2: 자격 판단에는 도메인 번역이 필요하다
 
-Business owners think in terms of "I run a cafe in Gangnam." Government programs think in terms of "Food service industry, Seoul metropolitan area, annual revenue under ₩500M, business age under 3 years."
+사업주는 "강남에서 카페를 운영합니다"라고 생각한다. 정부 프로그램은 "음식서비스업, 서울 수도권, 연매출 5억 미만, 업력 3년 미만"으로 구분한다.
 
-→ **Solution**: AI document analysis (Vision API) that extracts structured data from business registration certificates and free-text descriptions.
+→ **해결책**: 사업자등록증과 텍스트 설명에서 구조화된 데이터를 추출하는 AI 문서 분석 (Vision API).
 
-### Insight 3: The "Last Mile" Problem Kills Conversion
+### 인사이트 3: "마지막 1마일" 문제가 전환을 죽인다
 
-Even after finding a matching program, the application format is the final barrier. Each program has its own template with 6+ sections.
+매칭되는 프로그램을 찾은 후에도 신청 양식이 최종 장벽이다. 각 프로그램은 6개 이상의 섹션으로 구성된 자체 템플릿을 가지고 있다.
 
-→ **Solution**: AI application document generator that produces drafts in the exact official format, with a checklist of required information items.
+→ **해결책**: 공식 양식에 맞춘 초안을 생성하는 AI 신청서 생성기, 필수 정보 항목 체크리스트 포함.
 
-### Insight 4: Time is the Hidden Cost
+### 인사이트 4: 시간이 숨겨진 비용이다
 
-Manual process: 2–4 weeks from discovery to submission. Our target: under 30 minutes from landing to generated application draft.
+수동 프로세스: 발견에서 제출까지 2~4주. 우리의 목표: 랜딩 페이지 접속부터 생성된 신청서 초안까지 30분 이내.
 
-→ **Solution**: D-day countdown, deadline-sorted results, and one-click document generation.
+→ **해결책**: D-day 카운트다운, 마감일순 정렬, 원클릭 문서 생성.
 
-## Why Tree → Feature Mapping
+## Why Tree → 기능 매핑
 
-| Root Cause | Feature | Status |
-|-----------|---------|--------|
-| Fragmented information | Centralized grant database (공공API + seed data) | Done |
-| Complex eligibility | AI matching with 5-attribute scoring | Done |
-| Hard to self-assess | AI document analysis (Vision + text) | Done |
-| Different formats per program | Program-specific application templates | Done |
-| Expensive consultants | AI document generation (free/low-cost) | Done |
-| Missed deadlines | D-day display + deadline sorting | Done |
-| No expert access for small firms | Expert matching marketplace | Done |
+| 근본 원인 | 기능 | 상태 |
+|-----------|------|------|
+| 분산된 정보 | 중앙화된 지원사업 DB (공공API + 시드 데이터) | 완료 |
+| 복잡한 자격 요건 | 5가지 속성 기반 AI 매칭 스코어링 | 완료 |
+| 자가 평가의 어려움 | AI 문서 분석 (Vision + 텍스트) | 완료 |
+| 프로그램별 다른 양식 | 프로그램별 맞춤 신청서 템플릿 | 완료 |
+| 비싼 컨설턴트 비용 | AI 문서 생성 (무료/저비용) | 완료 |
+| 놓치는 마감일 | D-day 표시 + 마감일순 정렬 | 완료 |
+| 소기업의 전문가 접근 불가 | 전문가 매칭 마켓플레이스 | 완료 |

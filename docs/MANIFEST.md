@@ -1,53 +1,53 @@
-# MANIFEST — Core Values & Principles
+# MANIFEST — 프로젝트 핵심 가치와 원칙
 
-## Project Name
+## 프로젝트 이름
 
-**보조금 매칭 (GovGrant Match)** — AI-Powered Government Subsidy Matching Service for Korean SMEs
+**보조금매칭AI (Subsidy Buddy)** — 한국 중소기업을 위한 AI 기반 정부 보조금 매칭 서비스
 
-## Mission
+## 미션
 
-Democratize access to government subsidies by removing information asymmetry. Small business owners should not miss funding opportunities simply because they don't know they exist or lack the expertise to apply.
+정보 비대칭을 해소하여 정부 보조금 접근을 민주화한다. 소상공인이 지원사업의 존재를 모르거나 신청 전문성이 부족하다는 이유만으로 지원 기회를 놓쳐서는 안 된다.
 
-## Core Values
+## 핵심 가치
 
-### 1. Accessibility First
+### 1. 접근성 우선
 
-Government subsidy information is scattered across dozens of portals in bureaucratic language. We centralize, simplify, and personalize it. Any business owner — regardless of technical literacy — should be able to find relevant grants in under 2 minutes.
+정부 보조금 정보는 수십 개 포털에 관료적 언어로 흩어져 있다. 우리는 이를 한곳에 모으고, 쉽게 풀어쓰고, 맞춤형으로 제공한다. 기술 수준과 관계없이 누구나 2분 안에 관련 지원사업을 찾을 수 있어야 한다.
 
-### 2. AI as an Equalizer
+### 2. AI는 평등의 도구
 
-Large companies hire consultants to navigate government programs. We use AI (Gemini Vision + Claude fallback) to give solo entrepreneurs the same advantage: automatic document analysis, eligibility scoring, and application drafting.
+대기업은 컨설턴트를 고용해 정부 프로그램을 탐색한다. 우리는 AI(Gemini Vision + Claude 폴백)를 활용해 1인 사업자에게도 같은 수준의 정보를 제공한다: 자동 문서 분석, 자격 스코어링, 신청서 초안 작성까지.
 
-### 3. Trust Through Transparency
+### 3. 투명성을 통한 신뢰
 
-- Matching scores are explained, not black-boxed (High / Medium / Low with reasons).
-- D-day countdowns show real deadlines from public APIs.
-- Data sources are cited (기업마당 공공API).
+- 매칭 점수는 블랙박스가 아니라 이유와 함께 설명된다 (높음 / 보통 / 낮음 + 근거).
+- D-day 카운트다운은 공공API의 실제 마감일을 보여준다.
+- 데이터 출처를 명시한다 (기업마당 공공API).
 
-### 4. Lower the Barrier to Action
+### 4. 행동 장벽을 낮춘다
 
-Finding a grant is only half the problem. We also generate application documents in the exact format each program requires (예비창업패키지, 초기창업패키지, etc.), reducing the "last mile" friction that stops people from applying.
+지원사업을 찾는 것은 절반에 불과하다. 각 프로그램이 요구하는 정확한 양식(예비창업패키지, 초기창업패키지 등)에 맞춘 신청서까지 생성하여, 사람들이 실제로 신청하지 못하게 만드는 "마지막 1마일" 마찰을 줄인다.
 
-### 5. Sustainability via Value Alignment
+### 5. 가치 정렬형 수익 모델
 
-Our monetization (freemium + per-document pricing + expert matching commissions) only charges when we deliver clear value. Free users still get core matching — no paywall on public information.
+우리의 수익화(프리미엄 구독 + 건당 과금 + 전문가 매칭 수수료)는 명확한 가치를 전달할 때만 과금한다. 무료 사용자도 핵심 매칭 기능을 사용할 수 있다 — 공공 정보에 페이월을 두지 않는다.
 
-## Design Principles
+## 설계 원칙
 
-| Principle | Implementation |
-|-----------|---------------|
-| Mobile-first | Responsive UI tested on 360px+ viewports |
-| Speed over perfection | Seed data + API caching for instant results while live data loads |
-| Graceful degradation | Dual AI engine (Gemini primary, Claude fallback) ensures uptime |
-| Privacy by default | Uploaded documents are analyzed in-memory, not stored permanently |
+| 원칙 | 적용 방식 |
+|------|-----------|
+| 모바일 우선 | 360px+ 뷰포트에서 테스트된 반응형 UI |
+| 속도 우선 | 시드 데이터 + API 캐싱으로 즉시 결과 표시, 라이브 데이터는 백그라운드 로드 |
+| 우아한 장애 대응 | 이중 AI 엔진 (Gemini 기본, Claude 폴백)으로 가용성 확보 |
+| 기본 개인정보 보호 | 업로드된 문서는 메모리에서만 분석, 영구 저장하지 않음 |
 
-## Tech Stack
+## 기술 스택
 
-- **Frontend**: Next.js 16 · React 19 · Tailwind CSS 4
-- **AI**: Gemini 2.0 Flash (primary) · Claude Sonnet (fallback)
-- **Data**: 기업마당 공공API + curated seed data (30 programs)
-- **Deploy**: Vercel
+- **프론트엔드**: Next.js 16 · React 19 · Tailwind CSS 4
+- **AI**: Gemini 2.0 Flash (기본) · Claude Sonnet (폴백)
+- **데이터**: 기업마당 공공API + 큐레이션된 시드 데이터 (30개 프로그램)
+- **배포**: Vercel
 
-## Team Commitment
+## 팀 서약
 
-We commit to building software that serves the public interest. If a small business owner in a rural area can discover and apply for a subsidy they didn't know about — we've succeeded.
+우리는 공익에 봉사하는 소프트웨어를 만든다. 지방의 한 소상공인이 자신이 몰랐던 보조금을 발견하고 신청할 수 있다면 — 우리는 성공한 것이다.
