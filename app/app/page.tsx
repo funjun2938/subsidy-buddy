@@ -1,4 +1,5 @@
 import ConditionForm from "@/components/ConditionForm";
+import FAQ from "@/components/FAQ";
 import Link from "next/link";
 
 export default function Home() {
@@ -95,6 +96,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <FAQ />
     </div>
   );
 }
