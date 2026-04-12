@@ -79,7 +79,7 @@ export default function Home() {
             </div>
             <h3 className="font-bold mb-2">AI 신청서 생성</h3>
             <p className="text-sm text-gray-500 leading-relaxed mb-3">
-              지원사업에 맞는 사업계획서 초안을 AI가 자동으로 작성합니다. 합격률 높은 전략도 함께 제안.
+              지원사업 사업계획서 초안 작성 + 공고 원본 HWPX 양식에 AI가 셀 단위로 자동 기입까지 한 번에.
             </p>
             <span className="text-xs text-violet-400 font-semibold">건당 29,900원</span>
           </Link>

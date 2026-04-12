@@ -4,15 +4,17 @@ import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { retrieveFile } from "@/lib/file-store";
 import Link from "next/link";
+import JSZip from "jszip";
 
-const GRANT_EXAMPLES = [
-  "2026년 예비창업패키지",
-  "2026년 초기창업패키지",
-  "소상공인 디지털 전환 지원",
-  "중소기업 기술혁신개발사업 (R&D)",
-  "AI 바우처 지원사업",
-  "수출바우처 사업",
-];
+// 지원사업명 빠른 선택 칩은 마운트 시 /api/grants 에서 실제 공고를 가져온다.
+// (예전엔 하드코딩 더미 6개였음)
+
+interface GrantSummary {
+  id: string;
+  title: string;
+  deadline: string;
+  orgName?: string;
+}
 
 interface CheckItem {
   id: string;
@@ -28,6 +30,12 @@ interface CheckResult {
 interface DocVersion {
   timestamp: string;
   documents: { docName: string; content: string }[];
+}
+
+interface GrantAttachment {
+  filename: string;
+  ext: string;
+  downloadUrl: string;
 }
 
 // Section parsing: split content by [N. ...] pattern
@@ -87,6 +95,15 @@ function simpleHash(str: string): string {
 
 const MAX_VERSIONS = 5;
 
+// 헤더로 base64(UTF-8 JSON)을 받을 때 atob() 만 쓰면 한글이 깨진다 (atob는 Latin-1 기준).
+// base64 → 바이트 → TextDecoder("utf-8") 순서로 안전하게 디코딩.
+function base64ToUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
 function GenerateContent() {
   const searchParams = useSearchParams();
   const [grantTitle, setGrantTitle] = useState("");
@@ -118,6 +135,31 @@ function GenerateContent() {
   const [feedbackText, setFeedbackText] = useState("");
   const [revisingSection, setRevisingSection] = useState(false);
   const [revisedSections, setRevisedSections] = useState<Set<number>>(new Set());
+
+  // 원본 HWPX 양식 자동 기입 — LLM이 표 라벨을 보고 답변을 만들어 채운다
+  const [hwpxFile, setHwpxFile] = useState<File | null>(null);
+  const [hwpxFileError, setHwpxFileError] = useState<string>("");
+  const hwpxFileRef = useRef<HTMLInputElement>(null);
+  const [fillingHwp, setFillingHwp] = useState(false);
+  const [hwpStatus, setHwpStatus] = useState<string>("");
+  const [hwpResult, setHwpResult] = useState<{
+    downloadUrl: string;
+    downloadName: string;
+    filledCount: number;
+    pdfStatus: string;
+    aiAnswers: Record<string, string>;
+    labelCount: number;
+    previewText: string;
+  } | null>(null);
+
+  // 공고 첨부 자동 로드 (pblancId가 있을 때 grants 상세 → /generate 진입 흐름)
+  const [pblancId, setPblancId] = useState<string>("");
+  const [grantAttachments, setGrantAttachments] = useState<GrantAttachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<GrantAttachment | null>(null);
+
+  // 마감 임박 실제 공고 — 빠른 선택 칩
+  const [grantOptions, setGrantOptions] = useState<GrantSummary[]>([]);
 
   // sessionStorage key
   const storageKey = grantTitle ? `doc-versions-${simpleHash(grantTitle)}` : "";
@@ -183,11 +225,17 @@ function GenerateContent() {
     const paramBizInfo = searchParams.get("bizInfo");
     const paramKeywords = searchParams.get("keywords");
     const paramBizType = searchParams.get("bizType");
+    const paramPblancId = searchParams.get("pblancId");
 
     if (paramGrant) {
       setGrantTitle(paramGrant);
       const items = getLocalChecklist(paramGrant);
       setChecklistItems(items);
+    }
+    if (paramPblancId && paramPblancId.startsWith("PBLN_")) {
+      setPblancId(paramPblancId);
+      // 첨부 자동 로드 — 공고에 붙은 신청서 양식을 화면에 즉시 보여준다
+      void loadAttachments(paramPblancId);
     }
 
     const infoParts: string[] = [];
@@ -204,6 +252,26 @@ function GenerateContent() {
 
     setInitialized(true);
   }, [searchParams, initialized]);
+
+  // 마감 임박 실제 공고 6개 가져오기 — 페이지 진입 시 1회
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/grants");
+        if (!res.ok) return;
+        const data = await res.json();
+        const list: GrantSummary[] = (data.grants || []).slice(0, 6).map((g: { id: string; title: string; deadline: string; orgName?: string }) => ({
+          id: g.id,
+          title: g.title,
+          deadline: g.deadline,
+          orgName: g.orgName,
+        }));
+        if (!cancelled) setGrantOptions(list);
+      } catch {/* silent */}
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const loadChecklist = useCallback(async (title: string) => {
     if (!title) {
@@ -223,6 +291,24 @@ function GenerateContent() {
   function handleGrantSelect(title: string) {
     setGrantTitle(title);
     loadChecklist(title);
+  }
+
+  // 실제 공고 칩 클릭 — 제목 + pblancId 동시 set + 첨부 자동 로드
+  function handleGrantPick(g: GrantSummary) {
+    setGrantTitle(g.title);
+    loadChecklist(g.title);
+    if (g.id.startsWith("PBLN_")) {
+      setPblancId(g.id);
+      setGrantAttachments([]);
+      setSelectedAttachment(null);
+      void loadAttachments(g.id);
+    } else {
+      // PBLN_ 형식이 아니면 첨부 자동 로드 불가
+      setPblancId("");
+      setGrantAttachments([]);
+      setSelectedAttachment(null);
+      setHwpStatus("");
+    }
   }
 
   const ALLOWED_TYPES = [
@@ -292,12 +378,23 @@ function GenerateContent() {
     setActiveTab(0);
     try {
       const finalBizInfo = bizInfo + (extractedInfo && !bizInfo.includes(extractedInfo) ? "\n\n[AI 추출 정보]\n" + extractedInfo : "");
-      const res = await fetch("/api/generate-doc", {
+
+      // 본문 사업계획서 + (양식이 첨부됐다면) 원본 HWPX 자동 기입을 동시에 실행 — 두 작업은 독립적
+      const docPromise = fetch("/api/generate-doc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ grantTitle, bizInfo: finalBizInfo }),
-      });
-      const data = await res.json();
+      }).then(async (res) => res.json());
+
+      const hwpPromise = (selectedAttachment || hwpxFile)
+        ? (async () => {
+            try {
+              await handleFillOriginalForm();
+            } catch {/* hwpStatus에 메시지 들어감 */}
+          })()
+        : Promise.resolve();
+
+      const [data] = await Promise.all([docPromise, hwpPromise]);
       let newDocs: { docName: string; content: string }[] = [];
       if (data.documents) {
         newDocs = data.documents;
@@ -313,6 +410,156 @@ function GenerateContent() {
       setDocuments([{ docName: "오류", content: "문서 생성 중 오류가 발생했습니다." }]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // 공고 첨부 자동 로드
+  async function loadAttachments(id: string) {
+    setLoadingAttachments(true);
+    try {
+      const res = await fetch(`/api/grant-attachments?pblancId=${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setHwpStatus(`첨부 추출 실패: ${err.error || res.status}`);
+        return;
+      }
+      const data = await res.json();
+      const att: GrantAttachment[] = data.attachments || [];
+      setGrantAttachments(att);
+      // .hwpx가 있으면 첫 번째를 자동 선택
+      const firstHwpx = att.find((a) => a.ext === "hwpx");
+      if (firstHwpx) {
+        setSelectedAttachment(firstHwpx);
+        setHwpStatus(`✓ 공고 첨부 ${att.length}개 인식됨 — AI 자동 기입 가능: "${firstHwpx.filename}"`);
+      } else {
+        setSelectedAttachment(null);
+        const hwpOnly = att.filter((a) => a.ext === "hwp");
+        if (hwpOnly.length > 0) {
+          setHwpStatus(
+            `이 공고에는 HWP(구버전) 파일만 있습니다. 한컴오피스에서 .hwpx로 한 번 저장 후 직접 업로드하세요.\n` +
+            `대상: ${hwpOnly.map((a) => a.filename).join(", ")}`
+          );
+        } else if (att.length === 0) {
+          setHwpStatus("이 공고의 첨부파일을 찾지 못했습니다.");
+        } else {
+          setHwpStatus(`이 공고에는 채울 수 있는 양식 파일이 없습니다 (${att.map((a) => a.ext).join(", ")}).`);
+        }
+      }
+    } catch (e) {
+      setHwpStatus(`첨부 로드 오류: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  }
+
+  // HWPX 파일 입력 핸들러 (수동 업로드 모드 — 공고 미선택 시 fallback)
+  function handleHwpxSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".hwpx")) {
+      setHwpxFileError("HWPX 파일만 지원합니다. (HWP는 한컴오피스에서 .hwpx로 저장 후 업로드)");
+      setHwpxFile(null);
+      return;
+    }
+    setHwpxFileError("");
+    setHwpxFile(file);
+    if (hwpResult) {
+      URL.revokeObjectURL(hwpResult.downloadUrl);
+      setHwpResult(null);
+    }
+    setHwpStatus("");
+  }
+
+  // 원본 HWPX 자동 기입 — 사이드카가 양식의 표 라벨을 추출 → LLM이 라벨별 답변 생성 → 사이드카가 셀에 채움
+  // 한 번 호출로 사용자 사업 정보를 보고 진짜 양식의 표 셀을 LLM이 채운다.
+  // 입력 우선순위: (1) 사용자가 선택한 공고 첨부 URL → (2) 직접 업로드한 HWPX 파일
+  async function handleFillOriginalForm() {
+    if (fillingHwp) return;
+    const hasAttachment = !!selectedAttachment;
+    if (!hasAttachment && !hwpxFile) {
+      setHwpStatus("먼저 공고를 선택하거나 원본 양식(HWPX) 파일을 첨부하세요.");
+      return;
+    }
+    const text = bizInfo.trim();
+    if (!text) {
+      setHwpStatus("사업 정보를 먼저 입력해주세요. LLM이 이 정보를 보고 답변을 만듭니다.");
+      return;
+    }
+    if (hwpResult) {
+      URL.revokeObjectURL(hwpResult.downloadUrl);
+      setHwpResult(null);
+    }
+
+    setFillingHwp(true);
+    setHwpStatus(
+      hasAttachment
+        ? `공고 첨부 다운로드 + AI 분석 중… (${selectedAttachment!.filename})`
+        : "AI가 양식 표 라벨을 분석 중…"
+    );
+    try {
+      let res: Response;
+      if (hasAttachment) {
+        res = await fetch("/api/fill-hwp-ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            attachmentUrl: selectedAttachment!.downloadUrl,
+            attachmentName: selectedAttachment!.filename,
+            bizInfo: text,
+            grantTitle,
+          }),
+        });
+      } else {
+        const form = new FormData();
+        form.append("hwpx", hwpxFile!);
+        form.append("bizInfo", text);
+        form.append("grantTitle", grantTitle);
+        res = await fetch("/api/fill-hwp-ai", { method: "POST", body: form });
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const hint = err.hint ? `\n${err.hint}` : "";
+        const detail = err.detail ? `\n${err.detail}` : "";
+        setHwpStatus(`양식 작성 실패: ${err.error || res.status}${detail}${hint}`);
+        return;
+      }
+
+      const filledCount = Number(res.headers.get("X-Filled-Count") || "0");
+      const labelCount = Number(res.headers.get("X-Ai-Labels") || "0");
+      const pdfStatus = res.headers.get("X-Pdf-Status") || "skipped";
+      const aiAnswersB64 = res.headers.get("X-Ai-Answers-Json") || "";
+      let aiAnswers: Record<string, string> = {};
+      if (aiAnswersB64) {
+        try {
+          aiAnswers = JSON.parse(base64ToUtf8(aiAnswersB64));
+        } catch { /* 화면 표시는 생략 */ }
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const sourceName = hasAttachment ? selectedAttachment!.filename : hwpxFile!.name;
+      const baseName = sourceName.replace(/\.hwpx$/i, "");
+      const downloadName = `${baseName}_AI작성.zip`;
+
+      // 결과 zip에서 채워진 양식의 텍스트 미리보기를 추출 — 한컴 없이도 화면에서 확인
+      let previewText = "";
+      try {
+        const buf = await blob.arrayBuffer();
+        const zip = await JSZip.loadAsync(buf);
+        const previewFile = zip.file("preview.txt");
+        if (previewFile) previewText = await previewFile.async("string");
+      } catch {
+        // 미리보기는 옵션 — 실패해도 다운로드는 그대로
+      }
+
+      setHwpResult({ downloadUrl: url, downloadName, filledCount, pdfStatus, aiAnswers, labelCount, previewText });
+
+      const pdfNote = pdfStatus === "ok" ? " (PDF 포함)" : pdfStatus !== "ok" ? ` (PDF 생략: ${pdfStatus})` : "";
+      setHwpStatus(`완료 — 표 라벨 ${labelCount}개 중 셀 ${filledCount}개에 AI가 답변 작성${pdfNote}`);
+    } catch (e) {
+      setHwpStatus(`오류: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setFillingHwp(false);
     }
   }
 
@@ -408,22 +655,35 @@ function GenerateContent() {
               placeholder="예: 2026년 예비창업패키지"
               className="w-full px-4 py-3 bg-gray-900/80 border border-white/10 rounded-xl text-white text-sm placeholder:text-gray-600 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 outline-none transition"
             />
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {GRANT_EXAMPLES.map((ex) => (
-                <button
-                  key={ex}
-                  type="button"
-                  onClick={() => handleGrantSelect(ex)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${
-                    grantTitle === ex
-                      ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-                      : "bg-white/3 text-gray-500 border-white/5 hover:border-white/15 hover:text-gray-300"
-                  }`}
-                >
-                  {ex}
-                </button>
-              ))}
-            </div>
+            {grantOptions.length > 0 ? (
+              <div className="mt-2">
+                <p className="text-[10px] text-gray-600 mb-1.5">📅 마감 임박 실제 공고에서 선택 (클릭 시 첨부 양식 자동 로드)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {grantOptions.map((g) => {
+                    const selected = grantTitle === g.title;
+                    const isLive = g.id.startsWith("PBLN_");
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => handleGrantPick(g)}
+                        title={`${g.title}${g.orgName ? ` · ${g.orgName}` : ""} · 마감 ${g.deadline}`}
+                        className={`text-[11px] px-2.5 py-1 rounded-lg border transition max-w-xs truncate ${
+                          selected
+                            ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                            : "bg-white/3 text-gray-500 border-white/5 hover:border-white/15 hover:text-gray-300"
+                        }`}
+                      >
+                        {isLive && <span className="mr-1 text-cyan-400/70">●</span>}
+                        {g.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[10px] text-gray-600 mt-2">실제 공고 목록을 불러오는 중…</p>
+            )}
           </div>
 
           {/* 양식 안내 + 체크리스트 */}
@@ -588,6 +848,130 @@ function GenerateContent() {
             />
           </div>
 
+          {/* 원본 양식(HWPX) — 공고가 선택돼 있으면 자동 인식, 아니면 수동 업로드 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              원본 신청서 양식 {pblancId ? <span className="text-cyan-400 font-normal">(공고 첨부 자동 인식)</span> : <span className="text-cyan-400 font-normal">(HWPX, 선택)</span>}
+            </label>
+
+            {pblancId ? (
+              // 공고에서 넘어온 경우 — 첨부 자동 로드 패널
+              <div className="rounded-xl p-4 bg-cyan-500/5 border border-cyan-500/15">
+                {loadingAttachments ? (
+                  <div className="flex items-center gap-2 text-xs text-cyan-300">
+                    <span className="w-3 h-3 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" />
+                    공고 첨부파일 분석 중…
+                  </div>
+                ) : grantAttachments.length === 0 ? (
+                  <p className="text-xs text-gray-500">첨부파일이 인식되지 않았습니다.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-gray-500 mb-2">공고 첨부파일 {grantAttachments.length}개:</p>
+                    {grantAttachments.map((att, i) => {
+                      const fillable = att.ext === "hwpx";
+                      const selected = selectedAttachment?.downloadUrl === att.downloadUrl;
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => fillable && setSelectedAttachment(att)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition ${
+                            fillable
+                              ? selected
+                                ? "bg-cyan-500/20 border border-cyan-500/40 cursor-pointer"
+                                : "bg-white/3 border border-white/10 hover:border-cyan-500/30 cursor-pointer"
+                              : "bg-white/2 border border-white/5 opacity-60"
+                          }`}
+                        >
+                          <span className="text-base">
+                            {att.ext === "hwpx" ? "📄" : att.ext === "hwp" ? "📕" : att.ext === "pdf" ? "📑" : "📦"}
+                          </span>
+                          <span className="flex-1 truncate text-gray-300">{att.filename}</span>
+                          {fillable ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex-shrink-0">
+                              {selected ? "✓ 선택됨" : "AI 자동 기입"}
+                            </span>
+                          ) : att.ext === "hwp" ? (
+                            <a
+                              href={att.downloadUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 flex-shrink-0 hover:bg-amber-500/25"
+                              title="HWP 구버전 — 한컴오피스에서 .hwpx로 저장 후 직접 업로드 필요"
+                            >
+                              원본 다운로드
+                            </a>
+                          ) : (
+                            <a
+                              href={att.downloadUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10 flex-shrink-0 hover:bg-white/10"
+                            >
+                              원본 다운로드
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // 공고 미선택 — 수동 업로드 슬롯
+              <div
+                onClick={() => hwpxFileRef.current?.click()}
+                className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+                  hwpxFile
+                    ? "border-cyan-500/40 bg-cyan-500/5"
+                    : "border-white/10 hover:border-cyan-500/30 bg-white/2"
+                }`}
+              >
+                <input
+                  ref={hwpxFileRef}
+                  type="file"
+                  accept=".hwpx"
+                  onChange={handleHwpxSelect}
+                  className="hidden"
+                />
+                {hwpxFile ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-xl">📄</span>
+                    <div className="text-left">
+                      <p className="text-sm text-cyan-300 font-medium">{hwpxFile.name}</p>
+                      <p className="text-[11px] text-gray-500">{(hwpxFile.size / 1024).toFixed(0)}KB · 사업계획서 생성 시 AI가 자동 기입합니다</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHwpxFile(null);
+                        setHwpxFileError("");
+                        if (hwpResult) { URL.revokeObjectURL(hwpResult.downloadUrl); setHwpResult(null); }
+                      }}
+                      className="ml-2 text-gray-500 hover:text-red-400 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-gray-400">📄 정부 공고 신청서 HWPX를 첨부하세요</p>
+                    <p className="text-[11px] text-gray-600 mt-1">
+                      💡 매칭 페이지에서 공고를 선택해 들어오면 자동으로 첨부를 가져옵니다
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            {hwpxFileError && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/15">
+                <p className="text-xs text-red-400">{hwpxFileError}</p>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleGenerate}
             disabled={loading || !grantTitle.trim() || (!bizInfo.trim() && !uploadedFile)}
@@ -628,14 +1012,86 @@ function GenerateContent() {
               >
                 전체 복사
               </button>
+              {(selectedAttachment || hwpxFile) && (
+                <button
+                  onClick={handleFillOriginalForm}
+                  disabled={fillingHwp}
+                  title="원본 양식(HWPX)에 AI가 답변을 다시 생성해 채웁니다"
+                  className="text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25 border border-cyan-500/25 transition disabled:opacity-50"
+                >
+                  {fillingHwp ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-3 h-3 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" />
+                      양식 채우는 중…
+                    </span>
+                  ) : (
+                    hwpResult ? "다시 채우기" : "원본 양식 AI 채우기"
+                  )}
+                </button>
+              )}
               <button
-                onClick={() => { setDocuments([]); setTemplateName(""); setActiveTab(0); setVersions([]); setRevisedSections(new Set()); setEditingSectionIdx(null); }}
+                onClick={() => {
+                  setDocuments([]); setTemplateName(""); setActiveTab(0); setVersions([]); setRevisedSections(new Set()); setEditingSectionIdx(null);
+                  if (hwpResult) { URL.revokeObjectURL(hwpResult.downloadUrl); setHwpResult(null); }
+                  setHwpStatus("");
+                }}
                 className="text-xs px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition"
               >
                 다시 생성
               </button>
             </div>
           </div>
+
+          {/* HWPX 양식 자동 기입 결과 패널 */}
+          {(hwpStatus || hwpResult) && (
+            <div className="mb-4 p-4 rounded-xl bg-gradient-to-br from-cyan-500/5 to-violet-500/5 border border-cyan-500/15">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-xs font-bold text-cyan-300 mb-1">📄 원본 HWPX 양식 자동 기입</div>
+                  {hwpStatus && (
+                    <div className="text-[11px] text-gray-300/90 whitespace-pre-line">{hwpStatus}</div>
+                  )}
+                </div>
+                {hwpResult && (
+                  <a
+                    href={hwpResult.downloadUrl}
+                    download={hwpResult.downloadName}
+                    className="flex-shrink-0 text-xs px-4 py-2 rounded-lg bg-cyan-500/20 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-500/30 transition font-semibold whitespace-nowrap"
+                  >
+                    📥 다운로드
+                  </a>
+                )}
+              </div>
+
+              {hwpResult && Object.keys(hwpResult.aiAnswers).length > 0 && (
+                <details className="mt-2">
+                  <summary className="text-[11px] text-gray-400 cursor-pointer hover:text-cyan-300">
+                    AI가 채운 셀 {Object.keys(hwpResult.aiAnswers).length}개 보기
+                  </summary>
+                  <div className="mt-3 space-y-1.5 max-h-64 overflow-auto pr-2">
+                    {Object.entries(hwpResult.aiAnswers).map(([label, value]) => (
+                      <div key={label} className="text-[11px] font-mono leading-relaxed">
+                        <span className="text-cyan-300">{label}</span>
+                        <span className="text-gray-600"> → </span>
+                        <span className="text-gray-200">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              {hwpResult && hwpResult.previewText && (
+                <details open className="mt-3">
+                  <summary className="text-[11px] text-gray-400 cursor-pointer hover:text-cyan-300">
+                    📋 채워진 양식 미리보기 (한컴 없이 확인)
+                  </summary>
+                  <div className="mt-3 max-h-[600px] overflow-auto rounded-lg bg-black/40 border border-white/10 p-4">
+                    <HwpxPreview text={hwpResult.previewText} />
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
 
           {/* Version History Selector */}
           {versions.length > 0 && (
@@ -841,6 +1297,77 @@ function DocumentRenderer({ text }: { text: string }) {
   }
 
   return <>{elements}</>;
+}
+
+// 사이드카가 만든 채워진 HWPX의 텍스트 미리보기를 렌더한다.
+// preview.txt 형식: 일반 문단은 한 줄 텍스트, 표는 `| cell | cell |` 줄들 + 위아래 빈 줄.
+function HwpxPreview({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const out: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const isTableLine = line.trim().startsWith("|") && line.trim().endsWith("|");
+    if (isTableLine) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|") && lines[i].trim().endsWith("|")) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      out.push(<HwpxPreviewTable key={key++} lines={tableLines} />);
+      continue;
+    }
+    if (line.trim()) {
+      out.push(
+        <p key={key++} className="text-sm text-gray-200 my-2 font-semibold">
+          {line.trim()}
+        </p>
+      );
+    }
+    i++;
+  }
+  if (out.length === 0) {
+    return <p className="text-xs text-gray-500">미리보기 텍스트가 비어 있습니다.</p>;
+  }
+  return <>{out}</>;
+}
+
+function HwpxPreviewTable({ lines }: { lines: string[] }) {
+  const rows = lines.map((l) =>
+    l.trim().slice(1, -1).split("|").map((c) => c.trim())
+  );
+  if (rows.length === 0) return null;
+  const ncols = Math.max(...rows.map((r) => r.length));
+  return (
+    <div className="my-3 overflow-x-auto rounded-lg border border-white/10">
+      <table className="w-full border-collapse text-xs">
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri}>
+              {Array.from({ length: ncols }).map((_, ci) => {
+                const cell = row[ci] || "";
+                // 라벨 셀(짧고 한글)이 첫 컬럼에 자주 나오므로 시각적으로 구분
+                const isLabel = ci === 0 && cell && cell.length <= 20;
+                return (
+                  <td
+                    key={ci}
+                    className={`px-3 py-2 border border-white/10 align-top ${
+                      isLabel
+                        ? "bg-cyan-500/10 text-cyan-200 font-medium whitespace-nowrap"
+                        : "text-gray-200"
+                    }`}
+                  >
+                    {cell || <span className="text-gray-700">—</span>}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function MarkdownTable({ lines }: { lines: string[] }) {
