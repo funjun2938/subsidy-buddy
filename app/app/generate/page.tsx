@@ -434,36 +434,36 @@ function GenerateContent() {
       const att: GrantAttachment[] = data.attachments || [];
       setGrantAttachments(att);
 
-      // AI 자동 선택 우선순위:
-      //   1) HWPX 중 신청서 (kind === "application")
-      //   2) HWPX 중 기타 (kind === "other")  — 안 그래도 양식일 가능성 있음
-      //   3) HWPX 중 안내문 (kind === "notice") — 최후의 수단 (사용자가 명시적으로 바꾸면 됨)
-      //   사용자가 수동으로 다른 HWPX를 골라 덮어쓸 수 있다 — 화면 카드 클릭.
-      const hwpxByKind = (kind: GrantAttachment["kind"]) =>
-        att.filter((a) => a.ext === "hwpx" && a.kind === kind);
-      const pick =
-        hwpxByKind("application")[0] || hwpxByKind("other")[0] || hwpxByKind("notice")[0] || null;
+      // AI 자동 선택은 "신청서(application) HWPX"만. 안내문/기타 HWPX는 AI가 알아서
+      // 고르지 않는다 — 사용자가 의도적으로 선택해야 함. (안내문에 LLM 답변을 넣는 건 무의미)
+      const hwpxApplications = att.filter((a) => a.ext === "hwpx" && a.kind === "application");
+      const pick = hwpxApplications[0] || null;
 
       if (pick) {
         setSelectedAttachment(pick);
-        const kindLabel = KIND_LABELS[pick.kind].label;
         setHwpStatus(
-          `✓ 공고 첨부 ${att.length}개 인식 — AI가 기본으로 "${kindLabel}" 을 골랐어요: ${pick.filename}\n` +
-          `다른 HWPX를 클릭해서 대상을 바꿀 수 있고, 모든 파일은 카드의 "원본 다운로드"로 받을 수 있어요.`
+          `✓ 공고 첨부 ${att.length}개 인식 — AI가 신청서를 선택했어요: ${pick.filename}\n` +
+          `"사업계획서 생성하기"를 누르면 AI가 이 양식을 채워서 다운로드해드립니다.`
         );
       } else {
         setSelectedAttachment(null);
         const hwpApps = att.filter((a) => a.ext === "hwp" && a.kind === "application");
+        const hwpxAny = att.filter((a) => a.ext === "hwpx");
         if (hwpApps.length > 0) {
           setHwpStatus(
             `⚠️ 이 공고는 신청서가 HWP(구버전)로만 제공돼 AI 자동 기입이 불가합니다.\n` +
-            `"원본 다운로드"로 받아 한컴오피스에서 .hwpx로 저장 후 수동 업로드하세요.\n` +
-            `신청서: ${hwpApps.map((a) => a.filename).join(", ")}`
+            `카드 우측 "↓ 원본"으로 HWP 신청서를 받아 한컴오피스에서 .hwpx로 저장 후 수동 업로드해주세요.\n` +
+            `(또는 안내문 HWPX를 일부러 선택하고 싶으면 카드를 클릭하세요 — 권장하지 않습니다)`
+          );
+        } else if (hwpxAny.length > 0) {
+          setHwpStatus(
+            `이 공고에는 HWPX 신청서가 없습니다. 안내문/기타 파일만 있어요.\n` +
+            `필요한 파일은 "↓ 원본"으로 내려받으세요. 억지로 안내문을 AI가 채우게 하려면 카드를 직접 클릭.`
           );
         } else if (att.length === 0) {
           setHwpStatus("이 공고의 첨부파일을 찾지 못했습니다.");
         } else {
-          setHwpStatus("이 공고에는 채울 수 있는 HWPX 양식이 없습니다. 필요한 파일은 '원본 다운로드'로 받으세요.");
+          setHwpStatus("이 공고에는 HWPX 양식이 없습니다. 필요한 파일은 '↓ 원본'으로 받으세요.");
         }
       }
     } catch (e) {
@@ -910,7 +910,22 @@ function GenerateContent() {
                       return (
                         <div
                           key={i}
-                          onClick={() => fillable && setSelectedAttachment(att)}
+                          onClick={() => {
+                            if (!fillable) return;
+                            // 이미 선택된 카드를 다시 클릭하면 선택 해제 (토글)
+                            if (selected) {
+                              setSelectedAttachment(null);
+                              setHwpStatus("AI 자동 기입 대상을 해제했어요. 사업계획서 본문만 생성됩니다.");
+                            } else {
+                              setSelectedAttachment(att);
+                              const kindLabel = KIND_LABELS[att.kind].label;
+                              setHwpStatus(
+                                att.kind === "application"
+                                  ? `✓ 신청서 선택: ${att.filename}`
+                                  : `⚠️ "${kindLabel}"을 AI 기입 대상으로 선택했어요. 의도한 게 맞으면 그대로 진행하세요.`
+                              );
+                            }
+                          }}
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition ${
                             fillable
                               ? selected
@@ -929,10 +944,13 @@ function GenerateContent() {
                             {kindStyle.label}
                           </span>
 
-                          {/* HWPX면 선택 상태, 아니면 원본 다운로드 */}
+                          {/* HWPX면 선택/해제 상태 */}
                           {fillable && selected && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 flex-shrink-0">
-                              ✓ AI 채움
+                            <span
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 flex-shrink-0"
+                              title="다시 클릭하면 선택 해제됩니다"
+                            >
+                              ✓ AI 채움 (재클릭 해제)
                             </span>
                           )}
                           {fillable && !selected && (
