@@ -44,6 +44,65 @@ export interface FetchAttachmentsResult {
     htmlLength: number;
     fileDownHits: number;
     error?: string;
+    via?: string; // "direct" 또는 "proxy:..."
+    attempts?: { via: string; ok: boolean; status?: number; error?: string }[];
+  };
+}
+
+// vercel hobby plan의 functions은 미국(iad)에서만 실행되는데, bizinfo.go.kr은
+// 해외 IP에서는 응답이 없거나 차단된다. 그래서 직접 fetch가 실패하면
+// 무료 외부 proxy 를 차례로 시도한다.
+const FETCH_ATTEMPTS: ((url: string) => string)[] = [
+  (u) => u,                                                     // 직접
+  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,      // CORS proxy
+  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, // allorigins
+];
+
+async function fetchHtmlWithFallback(
+  url: string
+): Promise<{ ok: boolean; html: string; status: number | null; via: string; error?: string; attempts: { via: string; ok: boolean; status?: number; error?: string }[] }> {
+  const attempts: { via: string; ok: boolean; status?: number; error?: string }[] = [];
+  for (let i = 0; i < FETCH_ATTEMPTS.length; i++) {
+    const builder = FETCH_ATTEMPTS[i];
+    const target = builder(url);
+    const via = i === 0 ? "direct" : target.split("?")[0];
+    try {
+      const res = await fetch(target, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "ko-KR,ko;q=0.9",
+        },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!res.ok) {
+        attempts.push({ via, ok: false, status: res.status });
+        continue;
+      }
+      const html = await res.text();
+      // 빈 페이지/차단 페이지 거르기 — bizinfo 정상 응답은 보통 50KB 이상
+      if (html.length < 2000) {
+        attempts.push({ via, ok: false, status: res.status, error: `tiny html ${html.length}` });
+        continue;
+      }
+      attempts.push({ via, ok: true, status: res.status });
+      return { ok: true, html, status: res.status, via, attempts };
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      // Node 의 fetch failed 는 cause 안에 진짜 이유가 들어있다
+      const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+      const detail = cause?.code || cause?.message || err.message;
+      attempts.push({ via, ok: false, error: `${err.name}: ${detail}` });
+    }
+  }
+  return {
+    ok: false,
+    html: "",
+    status: null,
+    via: "none",
+    error: attempts[attempts.length - 1]?.error || "all attempts failed",
+    attempts,
   };
 }
 
@@ -68,36 +127,22 @@ export async function fetchGrantAttachmentsWithDebug(
   }
 
   const url = `${BIZINFO_BASE}/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=${pblancId}`;
-  let html = "";
-  let httpStatus: number | null = null;
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml",
-        "Accept-Language": "ko-KR,ko;q=0.9",
-      },
-      signal: AbortSignal.timeout(15_000),
-    });
-    httpStatus = res.status;
-    if (!res.ok) {
-      console.error(`[grant-attachments] HTTP ${res.status} for ${pblancId}`);
-      return {
-        attachments: [],
-        debug: { httpStatus, htmlLength: 0, fileDownHits: 0, error: `HTTP ${res.status}` },
-      };
-    }
-    html = await res.text();
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("[grant-attachments] fetch error:", e);
+  const fetched = await fetchHtmlWithFallback(url);
+  if (!fetched.ok) {
     return {
       attachments: [],
-      debug: { httpStatus, htmlLength: 0, fileDownHits: 0, error: msg },
+      debug: {
+        httpStatus: fetched.status,
+        htmlLength: 0,
+        fileDownHits: 0,
+        error: fetched.error,
+        via: fetched.via,
+        attempts: fetched.attempts,
+      },
     };
   }
 
+  const html = fetched.html;
   const fileDownHits = (html.match(/fileDown\.do/g) || []).length;
   let attachments = extractAttachmentsRegex(html);
 
@@ -112,7 +157,13 @@ export async function fetchGrantAttachmentsWithDebug(
   cache.set(pblancId, { data: attachments, expiry: Date.now() + TTL_MS });
   return {
     attachments,
-    debug: { httpStatus, htmlLength: html.length, fileDownHits },
+    debug: {
+      httpStatus: fetched.status,
+      htmlLength: html.length,
+      fileDownHits,
+      via: fetched.via,
+      attempts: fetched.attempts,
+    },
   };
 }
 
@@ -237,20 +288,43 @@ ${slice}`;
 /**
  * 첨부 파일을 실제로 다운로드해 ArrayBuffer로 돌려준다.
  *
- * bizinfo는 Content-Disposition으로 한글 파일명을 EUC-KR/MS949로 보내는 경우가 있어
- * 파일명은 호출자가 이미 알고 있는 걸 우선 사용한다.
+ * vercel hobby plan은 미국 region에서 실행돼서 bizinfo 직접 다운로드가 막힐 수 있다.
+ * 직접 시도 후 실패하면 외부 proxy를 차례로 시도한다.
  */
 export async function downloadAttachment(downloadUrl: string): Promise<ArrayBuffer> {
-  const res = await fetch(downloadUrl, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-      Referer: BIZINFO_BASE,
-    },
-    signal: AbortSignal.timeout(60_000),
-  });
-  if (!res.ok) {
-    throw new Error(`첨부 다운로드 실패: HTTP ${res.status}`);
+  const attempts: ((u: string) => string)[] = [
+    (u) => u,                                                      // 직접
+    (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  ];
+  let lastError = "";
+  for (let i = 0; i < attempts.length; i++) {
+    const target = attempts[i](downloadUrl);
+    try {
+      const res = await fetch(target, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          Referer: BIZINFO_BASE,
+        },
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!res.ok) {
+        lastError = `HTTP ${res.status} (attempt ${i + 1})`;
+        continue;
+      }
+      const buf = await res.arrayBuffer();
+      // 너무 작으면 (1KB 미만) 빈/차단 응답으로 간주
+      if (buf.byteLength < 1024) {
+        lastError = `tiny response ${buf.byteLength}B (attempt ${i + 1})`;
+        continue;
+      }
+      return buf;
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      const cause = (err as { cause?: { code?: string; message?: string } }).cause;
+      lastError = `${err.name}: ${cause?.code || cause?.message || err.message} (attempt ${i + 1})`;
+    }
   }
-  return await res.arrayBuffer();
+  throw new Error(`첨부 다운로드 실패 — ${lastError}`);
 }
