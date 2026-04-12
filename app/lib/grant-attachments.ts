@@ -11,8 +11,7 @@
 // 두 a 태그가 같은 부모(div) 안에 묶여 있으므로 directViewBtn을 앵커로 잡고 그 다음에
 // 가장 가까운 fileDown.do href 를 페어링한다.
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
+// GoogleGenerativeAI는 edge runtime 호환을 위해 dynamic import로만 사용 (옵션 LLM 폴백)
 const BIZINFO_BASE = "https://www.bizinfo.go.kr";
 
 export interface GrantAttachment {
@@ -255,6 +254,7 @@ async function extractAttachmentsLLM(html: string): Promise<GrantAttachment[]> {
   const sliceStart = html.indexOf("첨부파일");
   const slice = sliceStart >= 0 ? html.slice(sliceStart, sliceStart + 5000) : html.slice(0, 5000);
 
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",

@@ -7,8 +7,10 @@ import { fetchGrantAttachmentsWithDebug } from "@/lib/grant-attachments";
 // 사용자에게 보여준다. AI 자동 기입은 .hwpx만 가능하므로 ext === "hwpx"인 첨부를
 // 우선 노출하고, 그 외에는 안내(한글 .hwp는 한컴오피스 변환 필요).
 
-export const runtime = "nodejs";
-// bizinfo.go.kr는 해외 IP에서 응답이 다르거나 차단될 수 있어 서울 region으로 강제
+// hobby plan은 nodejs runtime function의 region을 미국으로 고정하므로
+// edge runtime으로 바꿔 ICN(서울)에서 실행되게 한다 — vercel function의
+// outbound IP가 한국에 가까워져 bizinfo.go.kr 차단을 우회.
+export const runtime = "edge";
 export const preferredRegion = "icn1";
 
 export async function GET(request: NextRequest) {
