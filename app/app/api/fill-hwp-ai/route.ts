@@ -1,31 +1,25 @@
 import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
-import { downloadAttachment } from "@/lib/grant-attachments";
+import JSZip from "jszip";
 import { HwpxDocument } from "@/lib/hwpx";
 import { fillDocument, summarizeForPreview, type FillReport } from "@/lib/hwpx-filler";
 
 // LLM이 표 라벨을 보고 답변을 직접 만드는 통합 라우트.
 //
 // 흐름 (모두 Next.js 안에서 처리, 외부 사이드카 없음):
-//   1) 클라가 hwpx 파일(또는 공고 첨부 URL) + bizInfo + grantTitle 전달
+//   1) 클라가 multipart로 hwpx 파일 + bizInfo + grantTitle 전달
+//      (공고 첨부는 클라가 먼저 /api/download-attachment edge 라우트로 받아서 multipart에 동봉)
 //   2) HWPX 파싱 → 표 라벨 후보 추출
 //   3) (라벨 + 사업 정보 + 지원사업명) → LLM(Gemini→Claude)에 답변 생성 요청
 //   4) HWPX 표 셀에 답변 주입 → 직렬화
 //   5) zip(filled.hwpx + report.json + preview.txt) 응답
 //
-// 두 가지 호출 방식:
-//   (A) multipart/form-data — 사용자가 직접 파일 업로드
-//       fields: hwpx (file), bizInfo, grantTitle
-//   (B) application/json — 공고 첨부 URL을 서버가 직접 다운로드
-//       body: { attachmentUrl, attachmentName?, bizInfo, grantTitle }
-
-import JSZip from "jszip";
+// 이 라우트는 LLM SDK + jszip + lxml 동급의 fast-xml-parser를 쓰므로 nodejs runtime이 필요.
+// 첨부 다운로드 자체는 별도 edge 라우트(/api/download-attachment)가 ICN region에서 처리한다.
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
-// bizinfo.go.kr 첨부 다운로드도 한국 IP에서 해야 안정적
-export const preferredRegion = "icn1";
 
 export async function POST(request: NextRequest) {
   let hwpxBytes: Uint8Array;
@@ -33,50 +27,27 @@ export async function POST(request: NextRequest) {
   let bizInfo = "";
   let grantTitle = "";
 
-  const contentType = request.headers.get("content-type") || "";
+  // multipart/form-data — hwpx (file), bizInfo, grantTitle
+  // 공고 첨부 자동 모드도 클라가 미리 /api/download-attachment(edge)로 받아서 같은 multipart로 보낸다.
   try {
-    if (contentType.includes("application/json")) {
-      const body = await request.json();
-      const { attachmentUrl, attachmentName } = body ?? {};
-      bizInfo = String(body?.bizInfo || "");
-      grantTitle = String(body?.grantTitle || "");
-      if (!attachmentUrl || typeof attachmentUrl !== "string") {
-        return Response.json({ error: "attachmentUrl이 필요합니다." }, { status: 400 });
-      }
-      const looksLikeHwpx =
-        attachmentUrl.toLowerCase().endsWith(".hwpx") ||
-        (attachmentName && attachmentName.toLowerCase().endsWith(".hwpx"));
-      if (!looksLikeHwpx) {
-        return Response.json(
-          {
-            error: "AI 자동 기입은 HWPX 첨부만 가능합니다.",
-            hint: "HWP 파일은 한컴오피스에서 .hwpx로 저장 후 업로드하세요.",
-          },
-          { status: 415 }
-        );
-      }
-      let buf: ArrayBuffer;
-      try {
-        buf = await downloadAttachment(attachmentUrl);
-      } catch (e) {
-        return Response.json(
-          { error: "공고 첨부 다운로드 실패", detail: e instanceof Error ? e.message : String(e) },
-          { status: 502 }
-        );
-      }
-      hwpxBytes = new Uint8Array(buf);
-      hwpxName = attachmentName || "attachment.hwpx";
-    } else {
-      const form = await request.formData();
-      const hwpx = form.get("hwpx");
-      if (!hwpx || typeof hwpx === "string") {
-        return Response.json({ error: "hwpx 파일이 필요합니다." }, { status: 400 });
-      }
-      hwpxBytes = new Uint8Array(await (hwpx as Blob).arrayBuffer());
-      hwpxName = (hwpx as File).name || "input.hwpx";
-      bizInfo = String(form.get("bizInfo") || "");
-      grantTitle = String(form.get("grantTitle") || "");
+    const form = await request.formData();
+    const hwpx = form.get("hwpx");
+    if (!hwpx || typeof hwpx === "string") {
+      return Response.json({ error: "hwpx 파일이 필요합니다." }, { status: 400 });
     }
+    hwpxBytes = new Uint8Array(await (hwpx as Blob).arrayBuffer());
+    hwpxName = (hwpx as File).name || "input.hwpx";
+    if (!hwpxName.toLowerCase().endsWith(".hwpx")) {
+      return Response.json(
+        {
+          error: "AI 자동 기입은 HWPX 파일만 가능합니다.",
+          hint: "HWP 파일은 한컴오피스에서 .hwpx로 저장 후 업로드하세요.",
+        },
+        { status: 415 }
+      );
+    }
+    bizInfo = String(form.get("bizInfo") || "");
+    grantTitle = String(form.get("grantTitle") || "");
     if (!bizInfo.trim()) {
       return Response.json(
         { error: "bizInfo (사업 정보)가 필요합니다 — LLM이 이걸 보고 답변을 만듭니다." },

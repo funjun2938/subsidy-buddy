@@ -493,29 +493,38 @@ function GenerateContent() {
     setFillingHwp(true);
     setHwpStatus(
       hasAttachment
-        ? `공고 첨부 다운로드 + AI 분석 중… (${selectedAttachment!.filename})`
+        ? `공고 첨부 다운로드 중… (${selectedAttachment!.filename})`
         : "AI가 양식 표 라벨을 분석 중…"
     );
     try {
-      let res: Response;
+      // 공고 첨부 모드: edge 라우트로 먼저 다운로드 → 받은 Blob을 fill-hwp-ai에 multipart로 전달.
+      // edge 라우트는 한국에 가까운 region에서 실행되어 bizinfo 차단을 우회하고,
+      // fill-hwp-ai는 LLM + HWPX 채우기만 담당해 nodejs runtime 그대로 둘 수 있다.
+      let hwpxBlobToUpload: Blob;
+      let hwpxNameToUpload: string;
       if (hasAttachment) {
-        res = await fetch("/api/fill-hwp-ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            attachmentUrl: selectedAttachment!.downloadUrl,
-            attachmentName: selectedAttachment!.filename,
-            bizInfo: text,
-            grantTitle,
-          }),
-        });
+        const att = selectedAttachment!;
+        const dlRes = await fetch(
+          `/api/download-attachment?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.filename)}`
+        );
+        if (!dlRes.ok) {
+          const err = await dlRes.json().catch(() => ({}));
+          setHwpStatus(`공고 첨부 다운로드 실패: ${err.error || dlRes.status}${err.detail ? `\n${err.detail}` : ""}`);
+          return;
+        }
+        hwpxBlobToUpload = await dlRes.blob();
+        hwpxNameToUpload = att.filename;
+        setHwpStatus(`AI가 양식 표 라벨을 분석 중… (${(hwpxBlobToUpload.size / 1024).toFixed(0)}KB)`);
       } else {
-        const form = new FormData();
-        form.append("hwpx", hwpxFile!);
-        form.append("bizInfo", text);
-        form.append("grantTitle", grantTitle);
-        res = await fetch("/api/fill-hwp-ai", { method: "POST", body: form });
+        hwpxBlobToUpload = hwpxFile!;
+        hwpxNameToUpload = hwpxFile!.name;
       }
+
+      const form = new FormData();
+      form.append("hwpx", hwpxBlobToUpload, hwpxNameToUpload);
+      form.append("bizInfo", text);
+      form.append("grantTitle", grantTitle);
+      const res = await fetch("/api/fill-hwp-ai", { method: "POST", body: form });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const hint = err.hint ? `\n${err.hint}` : "";
