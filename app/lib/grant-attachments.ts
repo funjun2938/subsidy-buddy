@@ -37,15 +37,39 @@ const TTL_MS = 60 * 60 * 1000; // 1시간
  * 1) 정규식 기반 추출을 우선 시도한다 (LLM 호출 없음, 비용 0)
  * 2) 정규식이 0개를 반환하면 페이지 구조가 바뀐 것이므로 LLM 폴백 (선택)
  */
+export interface FetchAttachmentsResult {
+  attachments: GrantAttachment[];
+  debug: {
+    httpStatus: number | null;
+    htmlLength: number;
+    fileDownHits: number;
+    error?: string;
+  };
+}
+
 export async function fetchGrantAttachments(
   pblancId: string,
   options: { useLLMFallback?: boolean } = {}
 ): Promise<GrantAttachment[]> {
+  const result = await fetchGrantAttachmentsWithDebug(pblancId, options);
+  return result.attachments;
+}
+
+export async function fetchGrantAttachmentsWithDebug(
+  pblancId: string,
+  options: { useLLMFallback?: boolean } = {}
+): Promise<FetchAttachmentsResult> {
   const cached = cache.get(pblancId);
-  if (cached && Date.now() < cached.expiry) return cached.data;
+  if (cached && Date.now() < cached.expiry) {
+    return {
+      attachments: cached.data,
+      debug: { httpStatus: 200, htmlLength: -1, fileDownHits: cached.data.length },
+    };
+  }
 
   const url = `${BIZINFO_BASE}/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=${pblancId}`;
-  let html: string;
+  let html = "";
+  let httpStatus: number | null = null;
   try {
     const res = await fetch(url, {
       headers: {
@@ -56,16 +80,25 @@ export async function fetchGrantAttachments(
       },
       signal: AbortSignal.timeout(15_000),
     });
+    httpStatus = res.status;
     if (!res.ok) {
       console.error(`[grant-attachments] HTTP ${res.status} for ${pblancId}`);
-      return [];
+      return {
+        attachments: [],
+        debug: { httpStatus, htmlLength: 0, fileDownHits: 0, error: `HTTP ${res.status}` },
+      };
     }
     html = await res.text();
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error("[grant-attachments] fetch error:", e);
-    return [];
+    return {
+      attachments: [],
+      debug: { httpStatus, htmlLength: 0, fileDownHits: 0, error: msg },
+    };
   }
 
+  const fileDownHits = (html.match(/fileDown\.do/g) || []).length;
   let attachments = extractAttachmentsRegex(html);
 
   if (attachments.length === 0 && options.useLLMFallback) {
@@ -77,7 +110,10 @@ export async function fetchGrantAttachments(
   }
 
   cache.set(pblancId, { data: attachments, expiry: Date.now() + TTL_MS });
-  return attachments;
+  return {
+    attachments,
+    debug: { httpStatus, htmlLength: html.length, fileDownHits },
+  };
 }
 
 // ── 정규식 추출 ───────────────────────────────────────────────────────────────

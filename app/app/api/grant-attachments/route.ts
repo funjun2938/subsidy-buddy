@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { fetchGrantAttachments } from "@/lib/grant-attachments";
+import { fetchGrantAttachmentsWithDebug } from "@/lib/grant-attachments";
 
 // 공고 ID(pblancId)로 첨부파일 목록을 돌려준다.
 //
@@ -8,6 +8,8 @@ import { fetchGrantAttachments } from "@/lib/grant-attachments";
 // 우선 노출하고, 그 외에는 안내(한글 .hwp는 한컴오피스 변환 필요).
 
 export const runtime = "nodejs";
+// bizinfo.go.kr는 해외 IP에서 응답이 다르거나 차단될 수 있어 서울 region으로 강제
+export const preferredRegion = "icn1";
 
 export async function GET(request: NextRequest) {
   const pblancId = request.nextUrl.searchParams.get("pblancId");
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const attachments = await fetchGrantAttachments(pblancId);
+    const { attachments, debug } = await fetchGrantAttachmentsWithDebug(pblancId);
     const hwpxFillable = attachments.filter((a) => a.ext === "hwpx");
     const hwpManualOnly = attachments.filter((a) => a.ext === "hwp");
 
@@ -31,6 +33,8 @@ export async function GET(request: NextRequest) {
         ai_fillable: hwpxFillable.length,
         manual_only: hwpManualOnly.length,
       },
+      // 디버그용 — 응답 원인 추적 (한국 IP 차단 / 빈 페이지 등 식별)
+      debug,
     });
   } catch (e) {
     return Response.json(

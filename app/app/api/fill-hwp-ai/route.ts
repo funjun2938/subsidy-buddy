@@ -24,6 +24,8 @@ import JSZip from "jszip";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+// bizinfo.go.kr 첨부 다운로드도 한국 IP에서 해야 안정적
+export const preferredRegion = "icn1";
 
 export async function POST(request: NextRequest) {
   let hwpxBytes: Uint8Array;
