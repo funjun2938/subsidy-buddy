@@ -889,15 +889,15 @@ function GenerateContent() {
             />
           </div>
 
-          {/* 원본 양식(HWPX) — 공고가 선택돼 있으면 자동 인식, 아니면 수동 업로드 */}
+          {/* 원본 양식(HWPX) — 공고가 선택돼 있으면 자동 인식 패널 + 수동 업로드 슬롯 항상 표시 */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               원본 신청서 양식 {pblancId ? <span className="text-cyan-400 font-normal">(공고 첨부 자동 인식)</span> : <span className="text-cyan-400 font-normal">(HWPX, 선택)</span>}
             </label>
 
-            {pblancId ? (
+            {pblancId && (
               // 공고에서 넘어온 경우 — 첨부 자동 로드 패널
-              <div className="rounded-xl p-4 bg-cyan-500/5 border border-cyan-500/15">
+              <div className="rounded-xl p-4 bg-cyan-500/5 border border-cyan-500/15 mb-3">
                 {loadingAttachments ? (
                   <div className="flex items-center gap-2 text-xs text-cyan-300">
                     <span className="w-3 h-3 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" />
@@ -1001,53 +1001,98 @@ function GenerateContent() {
                   </div>
                 )}
               </div>
-            ) : (
-              // 공고 미선택 — 수동 업로드 슬롯
-              <div
-                onClick={() => hwpxFileRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
-                  hwpxFile
-                    ? "border-cyan-500/40 bg-cyan-500/5"
-                    : "border-white/10 hover:border-cyan-500/30 bg-white/2"
-                }`}
-              >
-                <input
-                  ref={hwpxFileRef}
-                  type="file"
-                  accept=".hwpx"
-                  onChange={handleHwpxSelect}
-                  className="hidden"
-                />
-                {hwpxFile ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-xl">📄</span>
-                    <div className="text-left">
-                      <p className="text-sm text-cyan-300 font-medium">{hwpxFile.name}</p>
-                      <p className="text-[11px] text-gray-500">{(hwpxFile.size / 1024).toFixed(0)}KB · 사업계획서 생성 시 AI가 자동 기입합니다</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setHwpxFile(null);
-                        setHwpxFileError("");
-                        if (hwpResult) { URL.revokeObjectURL(hwpResult.downloadUrl); setHwpResult(null); }
-                      }}
-                      className="ml-2 text-gray-500 hover:text-red-400 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm text-gray-400">📄 정부 공고 신청서 HWPX를 첨부하세요</p>
-                    <p className="text-[11px] text-gray-600 mt-1">
-                      💡 매칭 페이지에서 공고를 선택해 들어오면 자동으로 첨부를 가져옵니다
-                    </p>
-                  </div>
-                )}
+            )}
+
+            {/* HWP 안내 박스 — 공고에서 신청서가 HWP로만 있을 때 노출 */}
+            {pblancId && selectedAttachment && selectedAttachment.ext !== "hwpx" && (
+              <div className="rounded-xl p-4 bg-amber-500/5 border border-amber-500/20 mb-3 text-xs text-amber-100/90 leading-relaxed space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-amber-300">
+                  <span>⚠️</span>
+                  <span>이 공고의 신청서는 HWP(구버전) 입니다 — AI 자동 기입이 불가해 수동 변환이 필요해요</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 text-amber-100/80">
+                  <li>
+                    위 카드의 <span className="font-mono">↓ 원본</span> 버튼으로 <b>{selectedAttachment.filename}</b>를 다운로드하세요.
+                  </li>
+                  <li>
+                    한컴오피스(또는 무료 한컴 뷰어/뷰어+)로 파일을 엽니다.
+                    <br />
+                    <span className="text-[11px] text-amber-200/70">
+                      · Windows: 한컴오피스 뷰어 무료 —{" "}
+                      <a
+                        href="https://www.hancom.com/cs_center/csDownload.do"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-amber-100"
+                      >
+                        한컴 공식 다운로드
+                      </a>
+                      <br />
+                      · macOS: 한글 앱(유료) 필요. 또는 온라인 변환(cloudconvert.com)
+                    </span>
+                  </li>
+                  <li>
+                    [파일] → [다른 이름으로 저장] → 파일 형식을 <b>HWPX</b>로 선택 → 저장
+                  </li>
+                  <li>
+                    변환된 <b>.hwpx</b> 파일을 아래 <b>"변환한 HWPX 업로드"</b> 슬롯에 올리세요.
+                  </li>
+                </ol>
               </div>
             )}
+
+            {/* 수동 HWPX 업로드 슬롯 — 공고 선택 여부와 무관하게 항상 표시 */}
+            <div
+              onClick={() => hwpxFileRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
+                hwpxFile
+                  ? "border-cyan-500/40 bg-cyan-500/5"
+                  : selectedAttachment && selectedAttachment.ext !== "hwpx"
+                  ? "border-amber-500/40 bg-amber-500/5 hover:border-amber-400/60"
+                  : "border-white/10 hover:border-cyan-500/30 bg-white/2"
+              }`}
+            >
+              <input
+                ref={hwpxFileRef}
+                type="file"
+                accept=".hwpx"
+                onChange={handleHwpxSelect}
+                className="hidden"
+              />
+              {hwpxFile ? (
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">📄</span>
+                  <div className="text-left">
+                    <p className="text-sm text-cyan-300 font-medium">{hwpxFile.name}</p>
+                    <p className="text-[11px] text-gray-500">{(hwpxFile.size / 1024).toFixed(0)}KB · "사업계획서 생성하기" 누르면 AI가 자동 기입</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHwpxFile(null);
+                      setHwpxFileError("");
+                      if (hwpResult) { URL.revokeObjectURL(hwpResult.downloadUrl); setHwpResult(null); }
+                    }}
+                    className="ml-2 text-gray-500 hover:text-red-400 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-300 font-medium">
+                    📤 변환한 HWPX 업로드
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    {pblancId
+                      ? "HWP로만 제공되는 신청서는 한컴오피스로 .hwpx 저장 후 여기에 올리세요"
+                      : "정부 공고 신청서 HWPX 파일을 직접 업로드 (드래그&드롭 또는 클릭)"}
+                  </p>
+                  <p className="text-[10px] text-gray-600 mt-1">클릭하거나 파일을 드래그하세요 · .hwpx 형식만 지원</p>
+                </div>
+              )}
+            </div>
             {hwpxFileError && (
               <div className="mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/15">
                 <p className="text-xs text-red-400">{hwpxFileError}</p>
