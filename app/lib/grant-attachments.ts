@@ -14,12 +14,45 @@
 // GoogleGenerativeAI는 edge runtime 호환을 위해 dynamic import로만 사용 (옵션 LLM 폴백)
 const BIZINFO_BASE = "https://www.bizinfo.go.kr";
 
+export type AttachmentKind =
+  | "application" // 신청서/계획서/양식 (기입해서 제출하는 서류)
+  | "notice"      // 모집 공고/안내문/매뉴얼 (읽기용 참고자료)
+  | "other";      // 그 외 (기타 첨부)
+
 export interface GrantAttachment {
   filename: string;
   ext: "hwp" | "hwpx" | "pdf" | "zip" | string;
   downloadUrl: string;       // 절대 URL
   inlineViewPath?: string;   // bizinfo의 "바로보기" 인라인 경로 (선택)
   fileSize?: number;         // 알면 채우기 (HEAD 요청 안 함, 보통 미정)
+  kind: AttachmentKind;      // 파일명 휴리스틱으로 결정된 종류
+}
+
+/**
+ * 파일명을 보고 이 첨부가 "신청서"인지 "안내문"인지 분류한다.
+ *
+ * 공고마다 네이밍이 다르므로 키워드 우선순위:
+ *   1) "신청", "계획서", "지원서", "제출", "작성", "양식", "서식" → 신청서 (application)
+ *   2) "공고", "안내", "모집", "공모", "요강", "매뉴얼", "규정" → 안내문 (notice)
+ *   3) 나머지 → other
+ *
+ * "신청" 키워드가 더 구체적이므로 우선 체크. "모집 공고" 안에 "신청 방법"이 들어있는
+ * 제목일 수도 있으나, 그런 경우는 대부분 안내문이므로 notice 키워드를 먼저 검사하고
+ * application 키워드가 나중에 매치되더라도 덮어쓰지 않는다.
+ */
+export function classifyAttachment(filename: string): AttachmentKind {
+  // 안내문 키워드가 먼저 매치되면 notice로 확정 (덜 구체적이어서 false positive 있지만
+  // application 키워드가 더 강력하므로 뒤에서 덮어씀)
+  const isNotice =
+    /(공고|안내|모집|공모|요강|매뉴얼|규정|설명\s*서|설명자료|가이드|붙임\s*1|붙임\s*2|붙임\s*3)/u.test(filename);
+  const isApplication =
+    /(신청\s*서|신청\s*양식|신청\s*용|지원\s*신청|지원\s*서|계획\s*서|제출\s*서류|참가\s*신청|참여\s*신청|작성\s*서|제안\s*서|양식|서식)/u.test(
+      filename
+    );
+  // "신청"이 명시돼 있으면 안내문 키워드가 있어도 application 우선
+  if (isApplication) return "application";
+  if (isNotice) return "notice";
+  return "other";
 }
 
 interface CacheEntry {
@@ -207,6 +240,7 @@ function extractAttachmentsRegex(html: string): GrantAttachment[] {
       ext: v.ext,
       downloadUrl: BIZINFO_BASE + next.href,
       inlineViewPath: BIZINFO_BASE + v.pathBase + "/" + v.pathFile,
+      kind: classifyAttachment(v.filename),
     });
   }
 
@@ -221,6 +255,7 @@ function extractAttachmentsRegex(html: string): GrantAttachment[] {
         filename,
         ext,
         downloadUrl: BIZINFO_BASE + m[1].replace(/&amp;/g, "&"),
+        kind: classifyAttachment(filename),
       });
     }
   }
@@ -277,6 +312,7 @@ ${slice}`;
         filename: x.filename,
         ext: (x.ext || "").toLowerCase(),
         downloadUrl: BIZINFO_BASE + x.downloadPath,
+        kind: classifyAttachment(x.filename),
       }));
   } catch {
     return [];

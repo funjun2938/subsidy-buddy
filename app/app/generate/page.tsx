@@ -36,7 +36,14 @@ interface GrantAttachment {
   filename: string;
   ext: string;
   downloadUrl: string;
+  kind: "application" | "notice" | "other";
 }
+
+const KIND_LABELS: Record<GrantAttachment["kind"], { label: string; color: string }> = {
+  application: { label: "신청서", color: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+  notice:      { label: "안내문", color: "bg-amber-500/10 text-amber-300 border-amber-500/25" },
+  other:       { label: "기타",   color: "bg-white/5 text-gray-400 border-white/10" },
+};
 
 // Section parsing: split content by [N. ...] pattern
 function parseSections(content: string): { title: string; body: string }[] {
@@ -426,23 +433,37 @@ function GenerateContent() {
       const data = await res.json();
       const att: GrantAttachment[] = data.attachments || [];
       setGrantAttachments(att);
-      // .hwpx가 있으면 첫 번째를 자동 선택
-      const firstHwpx = att.find((a) => a.ext === "hwpx");
-      if (firstHwpx) {
-        setSelectedAttachment(firstHwpx);
-        setHwpStatus(`✓ 공고 첨부 ${att.length}개 인식됨 — AI 자동 기입 가능: "${firstHwpx.filename}"`);
+
+      // AI 자동 선택 우선순위:
+      //   1) HWPX 중 신청서 (kind === "application")
+      //   2) HWPX 중 기타 (kind === "other")  — 안 그래도 양식일 가능성 있음
+      //   3) HWPX 중 안내문 (kind === "notice") — 최후의 수단 (사용자가 명시적으로 바꾸면 됨)
+      //   사용자가 수동으로 다른 HWPX를 골라 덮어쓸 수 있다 — 화면 카드 클릭.
+      const hwpxByKind = (kind: GrantAttachment["kind"]) =>
+        att.filter((a) => a.ext === "hwpx" && a.kind === kind);
+      const pick =
+        hwpxByKind("application")[0] || hwpxByKind("other")[0] || hwpxByKind("notice")[0] || null;
+
+      if (pick) {
+        setSelectedAttachment(pick);
+        const kindLabel = KIND_LABELS[pick.kind].label;
+        setHwpStatus(
+          `✓ 공고 첨부 ${att.length}개 인식 — AI가 기본으로 "${kindLabel}" 을 골랐어요: ${pick.filename}\n` +
+          `다른 HWPX를 클릭해서 대상을 바꿀 수 있고, 모든 파일은 카드의 "원본 다운로드"로 받을 수 있어요.`
+        );
       } else {
         setSelectedAttachment(null);
-        const hwpOnly = att.filter((a) => a.ext === "hwp");
-        if (hwpOnly.length > 0) {
+        const hwpApps = att.filter((a) => a.ext === "hwp" && a.kind === "application");
+        if (hwpApps.length > 0) {
           setHwpStatus(
-            `이 공고에는 HWP(구버전) 파일만 있습니다. 한컴오피스에서 .hwpx로 한 번 저장 후 직접 업로드하세요.\n` +
-            `대상: ${hwpOnly.map((a) => a.filename).join(", ")}`
+            `⚠️ 이 공고는 신청서가 HWP(구버전)로만 제공돼 AI 자동 기입이 불가합니다.\n` +
+            `"원본 다운로드"로 받아 한컴오피스에서 .hwpx로 저장 후 수동 업로드하세요.\n` +
+            `신청서: ${hwpApps.map((a) => a.filename).join(", ")}`
           );
         } else if (att.length === 0) {
           setHwpStatus("이 공고의 첨부파일을 찾지 못했습니다.");
         } else {
-          setHwpStatus(`이 공고에는 채울 수 있는 양식 파일이 없습니다 (${att.map((a) => a.ext).join(", ")}).`);
+          setHwpStatus("이 공고에는 채울 수 있는 HWPX 양식이 없습니다. 필요한 파일은 '원본 다운로드'로 받으세요.");
         }
       }
     } catch (e) {
@@ -875,10 +896,17 @@ function GenerateContent() {
                   <p className="text-xs text-gray-500">첨부파일이 인식되지 않았습니다.</p>
                 ) : (
                   <div className="space-y-1.5">
-                    <p className="text-[11px] text-gray-500 mb-2">공고 첨부파일 {grantAttachments.length}개:</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] text-gray-500">공고 첨부파일 {grantAttachments.length}개 · HWPX는 클릭하면 AI 대상으로 바꿀 수 있어요</p>
+                      <div className="flex gap-1 text-[9px] text-gray-600">
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">신청서</span>
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/25">안내문</span>
+                      </div>
+                    </div>
                     {grantAttachments.map((att, i) => {
                       const fillable = att.ext === "hwpx";
                       const selected = selectedAttachment?.downloadUrl === att.downloadUrl;
+                      const kindStyle = KIND_LABELS[att.kind];
                       return (
                         <div
                           key={i}
@@ -888,39 +916,42 @@ function GenerateContent() {
                               ? selected
                                 ? "bg-cyan-500/20 border border-cyan-500/40 cursor-pointer"
                                 : "bg-white/3 border border-white/10 hover:border-cyan-500/30 cursor-pointer"
-                              : "bg-white/2 border border-white/5 opacity-60"
+                              : "bg-white/2 border border-white/5"
                           }`}
                         >
                           <span className="text-base">
                             {att.ext === "hwpx" ? "📄" : att.ext === "hwp" ? "📕" : att.ext === "pdf" ? "📑" : "📦"}
                           </span>
                           <span className="flex-1 truncate text-gray-300">{att.filename}</span>
-                          {fillable ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex-shrink-0">
-                              {selected ? "✓ 선택됨" : "AI 자동 기입"}
+
+                          {/* 종류 배지 */}
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border flex-shrink-0 ${kindStyle.color}`}>
+                            {kindStyle.label}
+                          </span>
+
+                          {/* HWPX면 선택 상태, 아니면 원본 다운로드 */}
+                          {fillable && selected && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 flex-shrink-0">
+                              ✓ AI 채움
                             </span>
-                          ) : att.ext === "hwp" ? (
-                            <a
-                              href={att.downloadUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 flex-shrink-0 hover:bg-amber-500/25"
-                              title="HWP 구버전 — 한컴오피스에서 .hwpx로 저장 후 직접 업로드 필요"
-                            >
-                              원본 다운로드
-                            </a>
-                          ) : (
-                            <a
-                              href={att.downloadUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10 flex-shrink-0 hover:bg-white/10"
-                            >
-                              원본 다운로드
-                            </a>
                           )}
+                          {fillable && !selected && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-500 border border-white/10 flex-shrink-0">
+                              클릭해 선택
+                            </span>
+                          )}
+
+                          {/* 모든 파일에 원본 다운로드 링크 (HWPX도 포함 — 사용자가 원하면 직접 받을 수 있게) */}
+                          <a
+                            href={att.downloadUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10 flex-shrink-0 hover:bg-white/10 hover:text-white"
+                            title="파일을 그대로 내려받기"
+                          >
+                            ↓ 원본
+                          </a>
                         </div>
                       );
                     })}
