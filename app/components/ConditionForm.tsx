@@ -176,7 +176,7 @@ export default function ConditionForm() {
               type="button"
               onClick={() => handleAnalyze()}
               disabled={analyzing || (!bizDesc.trim() && !fileName)}
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-violet-600 text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-violet-500 transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-violet-600 text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-violet-500 transition disabled:from-slate-300 disabled:to-slate-400 disabled:text-slate-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {analyzing ? (
                 <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />AI가 분석하고 있습니다...</>
@@ -251,7 +251,7 @@ export default function ConditionForm() {
         <button
           type="submit"
           disabled={loading || !bizType || !revenue || !region || !bizAge || !ceoAge}
-          className="w-full py-4 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-bold text-base rounded-xl hover:from-cyan-400 hover:to-violet-400 transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
+          className="w-full py-4 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-bold text-base rounded-xl hover:from-cyan-400 hover:to-violet-400 transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 disabled:from-slate-300 disabled:to-slate-400 disabled:text-slate-100 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
