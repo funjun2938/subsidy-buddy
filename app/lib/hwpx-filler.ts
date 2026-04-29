@@ -40,9 +40,16 @@ class LabelResolver {
     const norm = normalize(cellText);
     if (!norm) return null;
     if (this.exact.has(norm)) return this.exact.get(norm)!;
-    // 부분 일치
+    // 부분 일치 — 짧은 norm("번호", "명" 등)이 무관한 필드에 히트하지 않도록
+    // 양쪽 모두 최소 4자 이상이고 짧은 쪽이 긴 쪽 길이의 50% 이상일 때만 허용
+    if (norm.length < 4) return null;
     for (const [known, fieldKey] of this.exact.entries()) {
-      if (known && (known.includes(norm) || norm.includes(known))) return fieldKey;
+      if (!known || known.length < 4) continue;
+      const shorter = norm.length <= known.length ? norm : known;
+      const longer  = norm.length <= known.length ? known : norm;
+      if (longer.includes(shorter) && shorter.length >= longer.length * 0.5) {
+        return fieldKey;
+      }
     }
     return null;
   }

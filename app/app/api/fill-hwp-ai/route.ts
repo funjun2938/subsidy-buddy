@@ -72,13 +72,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 2) 표 라벨 후보 추출
+  // 2) 표 라벨 후보 추출 (표 구조 유지 — LLM 프롬프트에서 표별 컨텍스트 제공용)
   const preview = summarizeForPreview(hwpxName, doc);
   const labelSet = new Set<string>();
+  const tableGroups: { tableIndex: number; rows: number; cols: number; labels: string[] }[] = [];
   for (const t of preview.tables) {
+    const groupLabels: string[] = [];
     for (const l of t.label_candidates) {
       const trimmed = l.trim();
-      if (trimmed && trimmed.length <= 30) labelSet.add(trimmed);
+      if (trimmed && trimmed.length <= 40) {
+        labelSet.add(trimmed);
+        groupLabels.push(trimmed);
+      }
+    }
+    if (groupLabels.length > 0) {
+      tableGroups.push({ tableIndex: t.index, rows: t.rows, cols: t.cols, labels: groupLabels });
     }
   }
   const labels = [...labelSet];
@@ -92,7 +100,7 @@ export async function POST(request: NextRequest) {
   // 3) LLM이 라벨별 답변 생성
   let aiAnswers: Record<string, string>;
   try {
-    aiAnswers = await runLLMForLabels(labels, bizInfo, grantTitle);
+    aiAnswers = await runLLMForLabels(tableGroups, labels, bizInfo, grantTitle);
   } catch (e) {
     return Response.json(
       {
@@ -169,27 +177,39 @@ export async function POST(request: NextRequest) {
 
 // ── LLM ──────────────────────────────────────────────────────────────────────
 
-function buildPrompt(labels: string[], bizInfo: string, grantTitle: string): string {
+type TableGroup = { tableIndex: number; rows: number; cols: number; labels: string[] };
+
+function buildPrompt(tableGroups: TableGroup[], bizInfo: string, grantTitle: string): string {
+  const totalLabels = tableGroups.reduce((s, g) => s + g.labels.length, 0);
+  const tableSection = tableGroups
+    .map(
+      (g) =>
+        `[표 ${g.tableIndex + 1}] (${g.rows}행×${g.cols}열)\n` +
+        g.labels.map((l, i) => `  ${i + 1}. ${l}`).join("\n")
+    )
+    .join("\n\n");
+
   return `너는 정부 지원사업 신청서 양식의 표 셀에 들어갈 값을 만드는 전문 컨설턴트다.
-아래 [표 라벨 목록]은 진짜 정부 신청서 HWPX의 표 셀에서 추출된 텍스트다.
+아래 [표별 라벨 목록]은 진짜 정부 신청서 HWPX에서 표마다 추출한 셀 텍스트다.
 각 라벨에 대해, [신청자 사업 정보]를 기반으로 그 셀에 들어갈 값을 만들어라.
 
 규칙:
 1. 정확히 JSON 객체 한 개로만 응답한다. 키는 라벨 텍스트 그대로, 값은 셀에 들어갈 문자열.
 2. 라벨이 명백한 식별 정보(기업명/대표자/사업자번호/주소/연락처/이메일/설립일/업종/매출/자본금/신청금액 등)면
    사업 정보에서 정확한 값을 뽑아 넣는다. 사업 정보에 없는 값은 키를 생략한다 (추측 금지).
-3. 라벨이 서술형 항목(아이템 개요/사업 동기/시장 분석/경쟁력/팀 구성/자금 운용 등)이면
-   해당 셀이 얼마나 큰지 모르므로 핵심 1~3문장으로 압축해서 작성한다. 불릿(- )은 사용 가능.
+3. 라벨이 서술형 항목(사업 개요/추진 배경/시장 분석/경쟁력/팀 구성/자금 활용 등)이면
+   핵심 1~3문장으로 압축해서 작성한다. 불릿(- )은 사용 가능.
 4. 라벨이 합계/금액/날짜 등 단답형이면 단답으로.
-5. 표 헤더(예: "구분", "항목", "금액(천원)", "비고")처럼 답이 들어가지 않는 라벨은 생략한다.
+5. 표 헤더(예: "구분", "항목", "금액(천원)", "비고", "순번")처럼 값이 들어가지 않는 라벨은 생략한다.
 6. 모르거나 사업 정보에 근거가 없으면 키 자체를 생략. 빈 문자열 금지.
 7. JSON 외 다른 텍스트(코드블록 백틱, 설명) 절대 금지.
+8. 같은 표에서 앞 셀이 라벨이면 바로 뒤 셀이 값 셀이므로, 표 구조를 감안해 판단한다.
 
 [지원사업명]
 ${grantTitle || "(미지정)"}
 
-[표 라벨 목록 — 총 ${labels.length}개]
-${labels.map((l, i) => `${i + 1}. ${l}`).join("\n")}
+[표별 라벨 목록 — 총 ${totalLabels}개]
+${tableSection}
 
 [신청자 사업 정보]
 ${bizInfo.slice(0, 8000)}
@@ -198,16 +218,17 @@ ${bizInfo.slice(0, 8000)}
 }
 
 async function runLLMForLabels(
-  labels: string[],
+  tableGroups: TableGroup[],
+  allLabels: string[],
   bizInfo: string,
   grantTitle: string
 ): Promise<Record<string, string>> {
-  const text = await runLLM(buildPrompt(labels, bizInfo, grantTitle));
+  const text = await runLLM(buildPrompt(tableGroups, bizInfo, grantTitle));
   const parsed = parseJsonLoose(text);
   if (!parsed || typeof parsed !== "object") {
     throw new Error(`LLM 응답을 JSON으로 파싱하지 못했습니다: ${text.slice(0, 200)}`);
   }
-  const labelSet = new Set(labels);
+  const labelSet = new Set(allLabels);
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
     if (typeof v !== "string") continue;
@@ -253,7 +274,7 @@ async function runLLM(prompt: string): Promise<string> {
   if (claudeKey && claudeKey !== "your_anthropic_api_key_here") {
     const anthropic = new Anthropic({ apiKey: claudeKey });
     const msg = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     });
