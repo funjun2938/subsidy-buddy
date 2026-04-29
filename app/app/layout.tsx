@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { MonetizationBlock } from "@/components/MonetizationBlock";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -22,12 +23,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${geist.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex flex-col bg-[#030712] text-gray-100 font-[family-name:var(--font-geist)]">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <MonetizationBlock enablePro />
+    <html lang="ko" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)] font-[family-name:var(--font-geist)]">
+        <ThemeProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <MonetizationBlock enablePro />
+        </ThemeProvider>
       </body>
     </html>
   );
