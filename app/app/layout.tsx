@@ -26,6 +26,8 @@ export default function RootLayout({
     <html lang="ko" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)] font-[family-name:var(--font-geist)]">
         <ThemeProvider>
+          {/* PRO 배너(40px) 공간 확보 */}
+          <div className="h-10" />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

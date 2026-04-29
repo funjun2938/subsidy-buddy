@@ -3,7 +3,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export default function Header() {
   return (
-    <header className="glass sticky top-0 z-50">
+    <header className="glass sticky top-10 z-50">
       <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow">
