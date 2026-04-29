@@ -151,13 +151,23 @@ export default function CheckoutPage({
       </div>
 
       {/* Toss Payment Widget (카드 / 카카오페이 / 토스페이 등) */}
-      <div className="glass rounded-2xl p-2 mb-4 overflow-hidden">
-        <div id="payment-method" />
+      <div className="mb-3 px-1 text-xs text-gray-500 font-medium">
+        결제 수단
+      </div>
+      <div className="glass rounded-2xl p-3 mb-5 overflow-hidden">
+        <div className="toss-widget-frame">
+          <div id="payment-method" />
+        </div>
       </div>
 
       {/* Toss Agreement Widget (필수 약관) */}
-      <div className="glass rounded-2xl p-2 mb-6 overflow-hidden">
-        <div id="agreement" />
+      <div className="mb-3 px-1 text-xs text-gray-500 font-medium">
+        약관 동의
+      </div>
+      <div className="glass rounded-2xl p-3 mb-6 overflow-hidden">
+        <div className="toss-widget-frame">
+          <div id="agreement" />
+        </div>
       </div>
 
       {/* Total */}

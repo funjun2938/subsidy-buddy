@@ -65,6 +65,19 @@ select option { background: #0f172a; color: #e2e8f0; }
 }
 .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
 
+/* Toss 결제 위젯 다크 톤 다운 (iframe은 직접 스타일링 불가, 외부 필터로 보정) */
+.toss-widget-frame {
+  background: #cfd6e0;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  filter: brightness(0.78) saturate(0.88) contrast(1.02);
+  transition: filter 0.2s;
+}
+.toss-widget-frame:hover {
+  filter: brightness(0.88) saturate(0.92) contrast(1.02);
+}
+
 .noise::before {
   content: '';
   position: fixed;
