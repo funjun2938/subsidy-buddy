@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { MonetizationBlock } from "@/components/MonetizationBlock";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -26,6 +27,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <MonetizationBlock enablePro />
       </body>
     </html>
   );
