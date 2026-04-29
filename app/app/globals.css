@@ -10,23 +10,33 @@
   --surface-hover-border: rgba(6, 182, 212, 0.2);
   --accent: #06b6d4;
   --accent2: #8b5cf6;
-  --muted: #64748b;
+  --muted: #94a3b8;
   --card-bg: #0f172a;
   --scrollbar: #1e293b;
+  --input-bg: rgba(15, 23, 42, 0.8);
+  --input-border: rgba(255, 255, 255, 0.10);
+  --tab-bg: rgba(15, 23, 42, 0.5);
+  --separator: rgba(255, 255, 255, 0.05);
+  --footer-border: rgba(255, 255, 255, 0.05);
 }
 
 /* ── 라이트 모드 ────────────────────────────────────────────────────────────── */
 .light {
   --background: #f8fafc;
   --foreground: #0f172a;
-  --surface: rgba(255, 255, 255, 0.8);
+  --surface: rgba(255, 255, 255, 0.85);
   --surface-border: rgba(0, 0, 0, 0.08);
   --surface-hover-border: rgba(6, 182, 212, 0.35);
   --accent: #0891b2;
   --accent2: #7c3aed;
-  --muted: #94a3b8;
+  --muted: #64748b;
   --card-bg: #ffffff;
   --scrollbar: #cbd5e1;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --tab-bg: rgba(0, 0, 0, 0.05);
+  --separator: rgba(0, 0, 0, 0.08);
+  --footer-border: rgba(0, 0, 0, 0.08);
 }
 
 @theme inline {
