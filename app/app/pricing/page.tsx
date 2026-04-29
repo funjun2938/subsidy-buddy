@@ -10,6 +10,7 @@ const plans = [
     border: "border-white/5",
     cta: "무료로 시작",
     ctaBg: "bg-white/5 text-white hover:bg-white/10",
+    href: "/" as const,
     features: [
       { text: "AI 지원사업 매칭", included: true },
       { text: "매칭 결과 3건까지 보기", included: true },
@@ -30,6 +31,7 @@ const plans = [
     badge: "인기",
     cta: "프리미엄 시작",
     ctaBg: "bg-gradient-to-r from-cyan-500 to-violet-500 text-white hover:from-cyan-400 hover:to-violet-400 shadow-lg shadow-cyan-500/20",
+    href: "/checkout?plan=premium" as const,
     features: [
       { text: "AI 지원사업 매칭 (무제한)", included: true },
       { text: "전체 매칭 결과 보기", included: true },
@@ -49,6 +51,7 @@ const plans = [
     border: "border-violet-500/20",
     cta: "비즈니스 시작",
     ctaBg: "bg-gradient-to-r from-violet-500 to-pink-500 text-white hover:from-violet-400 hover:to-pink-400 shadow-lg shadow-violet-500/20",
+    href: "/checkout?plan=business" as const,
     features: [
       { text: "프리미엄 전체 기능 포함", included: true },
       { text: "AI 신청서 생성 무제한", included: true },
@@ -106,9 +109,12 @@ export default function PricingPage() {
               ))}
             </ul>
 
-            <button className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${plan.ctaBg}`}>
+            <Link
+              href={plan.href}
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all text-center ${plan.ctaBg}`}
+            >
               {plan.cta}
-            </button>
+            </Link>
           </div>
         ))}
       </div>
@@ -131,8 +137,8 @@ export default function PricingPage() {
             <h3 className="font-bold mb-1">전문가 신청 대행</h3>
             <p className="text-xs text-gray-500 mb-3">검증된 세무사·변리사·노무사가 직접 대행</p>
             <div className="text-2xl font-black text-pink-400">10~15<span className="text-sm text-gray-500 font-normal">% 수수료</span></div>
-            <Link href="/experts" className="mt-4 block text-xs text-pink-400 hover:text-pink-300 transition">
-              자세히 보기 →
+            <Link href="/checkout?plan=expert" className="mt-4 block text-xs text-pink-400 hover:text-pink-300 transition">
+              착수금 결제하기 →
             </Link>
           </div>
         </div>
