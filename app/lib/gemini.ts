@@ -139,7 +139,7 @@ export async function matchGrantsWithGemini(
   }
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     generationConfig: { temperature: 0 },
   });
 
@@ -200,7 +200,7 @@ export async function analyzeGrantWithGemini(
   if (!genAI) return null;
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     generationConfig: { temperature: 0 },
   });
 

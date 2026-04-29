@@ -74,7 +74,7 @@ async function analyzeWithVision(file: File) {
     );
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   const buffer = await file.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
 
@@ -103,7 +103,7 @@ async function analyzeText(content: string) {
   const genAI = getGemini();
   if (genAI) {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const result = await model.generateContent(
         EXTRACT_PROMPT + `\n\n[분석 대상 텍스트]\n${content.slice(0, 8000)}`
       );

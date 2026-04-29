@@ -292,7 +292,7 @@ async function extractAttachmentsLLM(html: string): Promise<GrantAttachment[]> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai");
   const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     generationConfig: { temperature: 0, responseMimeType: "application/json" },
   });
   const prompt = `다음 HTML 조각에서 첨부파일 정보를 추출해 JSON 배열로만 출력하라.
