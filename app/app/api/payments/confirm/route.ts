@@ -1,5 +1,6 @@
+// Toss 위젯 전용 테스트 시크릿 키 (test_gsk_*)
 const TOSS_SECRET_KEY =
-  process.env.TOSS_SECRET_KEY ?? "test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R";
+  process.env.TOSS_SECRET_KEY ?? "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6";
 
 export async function POST(request: Request) {
   let body: { paymentKey?: string; orderId?: string; amount?: number };

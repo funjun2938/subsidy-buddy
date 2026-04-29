@@ -9,7 +9,8 @@ import {
   type TossPaymentsWidgets,
 } from "@tosspayments/tosspayments-sdk";
 
-const TOSS_CLIENT_KEY = "test_ck_DnyRpQWGrNbdwv1G4DgrKwv1M9EN";
+// Toss 위젯 전용 테스트 클라이언트 키 (test_gck_*)
+const TOSS_CLIENT_KEY = "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm";
 
 type SearchParams = Promise<{ plan?: string }>;
 
