@@ -29,6 +29,7 @@ export default function ConditionForm() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState<AnalyzedResult | null>(null);
+  const [analyzeError, setAnalyzeError] = useState("");
   const [bizDesc, setBizDesc] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -44,6 +45,7 @@ export default function ConditionForm() {
   async function handleAnalyze(file?: File) {
     setAnalyzing(true);
     setAnalyzed(null);
+    setAnalyzeError("");
     try {
       const fd = new FormData();
       const targetFile = file ?? uploadedFile;
@@ -65,9 +67,15 @@ export default function ConditionForm() {
         if (r.region) setRegion(r.region);
         if (r.bizAge) setBizAge(r.bizAge);
         if (r.ceoAge) setCeoAge(r.ceoAge);
+      } else {
+        setAnalyzeError(data.error || "분석 결과를 가져오지 못했습니다.");
       }
-    } catch { /* ignore */ }
-    finally { setAnalyzing(false); }
+    } catch (e) {
+      setAnalyzeError("네트워크 오류가 발생했습니다. 다시 시도해 주세요.");
+      console.error("[analyze]", e);
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -203,6 +211,9 @@ export default function ConditionForm() {
                     </span>
                   ))}
                 </div>
+              )}
+              {analyzeError && (
+                <p className="mt-2 text-xs text-red-400">{analyzeError}</p>
               )}
             </div>
           </div>
