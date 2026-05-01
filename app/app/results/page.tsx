@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { MatchResult } from "@/lib/types";
 import GrantCard from "@/components/GrantCard";
+import SaveMatchSection from "@/components/SaveMatchSection";
 import Link from "next/link";
 
 function ResultsContent() {
@@ -140,6 +141,10 @@ function ResultsContent() {
               </div>
             </div>
           </div>
+
+          {matches.length > 0 && (
+            <SaveMatchSection conditions={condition} matchedGrants={matches} />
+          )}
 
           <div className="space-y-4">
             {matches.map((m) => (

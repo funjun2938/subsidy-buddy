@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
+import AuthNav from "./AuthNav";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Header() {
+export default async function Header() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <header className="glass sticky top-10 z-50">
       <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -25,6 +32,7 @@ export default function Header() {
           <Link href="/pricing" className="px-3 py-1.5 text-sm font-medium text-cyan-400 hover:text-cyan-300 rounded-lg hover:bg-cyan-500/5 transition">
             요금제
           </Link>
+          <AuthNav email={user?.email ?? null} />
           <ThemeToggle />
         </nav>
       </div>
