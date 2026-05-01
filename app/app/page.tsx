@@ -1,10 +1,12 @@
 import ConditionForm from "@/components/ConditionForm";
 import FAQ from "@/components/FAQ";
+import WelcomePopup from "@/components/WelcomePopup";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <div className="noise">
+      <WelcomePopup />
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
