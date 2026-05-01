@@ -32,6 +32,7 @@ export default function ConditionForm() {
   const [bizDesc, setBizDesc] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [bizType, setBizType] = useState("");
@@ -45,8 +46,9 @@ export default function ConditionForm() {
     setAnalyzed(null);
     try {
       const fd = new FormData();
-      if (file) {
-        fd.append("file", file);
+      const targetFile = file ?? uploadedFile;
+      if (targetFile) {
+        fd.append("file", targetFile);
       } else if (bizDesc.trim()) {
         fd.append("text", bizDesc);
       } else {
@@ -72,6 +74,7 @@ export default function ConditionForm() {
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
+      setUploadedFile(file);
       storeFile(file).catch(() => {});
       handleAnalyze(file);
     }
@@ -83,6 +86,7 @@ export default function ConditionForm() {
     const file = e.dataTransfer.files[0];
     if (file) {
       setFileName(file.name);
+      setUploadedFile(file);
       storeFile(file).catch(() => {});
       handleAnalyze(file);
     }
@@ -169,32 +173,30 @@ export default function ConditionForm() {
               rows={4}
               className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all resize-none bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30"
             />
-          </div>
 
-          {!analyzed && (
-            <button
-              type="button"
-              onClick={() => handleAnalyze()}
-              disabled={analyzing || (!bizDesc.trim() && !fileName)}
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-violet-600 text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-violet-500 transition disabled:from-slate-300 disabled:to-slate-400 disabled:text-slate-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {analyzing ? (
-                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />AI가 분석하고 있습니다...</>
-              ) : "AI로 사업 정보 분석하기"}
-            </button>
-          )}
-
-          {analyzed && (
-            <div className="p-4 bg-gradient-to-r from-cyan-500/5 to-violet-500/5 border border-cyan-500/20 rounded-xl">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm">✅</span>
-                <span className="text-sm font-semibold text-cyan-500">AI 분석 완료</span>
+            {/* 분석 결과 텍스트박스 */}
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-[var(--muted)]">AI 분석 결과</span>
+                {analyzing && (
+                  <span className="text-xs text-cyan-500 flex items-center gap-1">
+                    <span className="w-2 h-2 border border-cyan-500 border-t-transparent rounded-full animate-spin inline-block" />
+                    분석 중...
+                  </span>
+                )}
+                {analyzed && !analyzing && (
+                  <span className="text-xs text-emerald-500">✓ 완료</span>
+                )}
               </div>
-              {analyzed.summary && (
-                <p className="text-xs text-[var(--muted)] mb-3 leading-relaxed">{analyzed.summary}</p>
-              )}
-              {analyzed.keywords?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+              <textarea
+                readOnly
+                value={analyzed?.summary ?? ""}
+                placeholder="파일 또는 사업 설명을 입력하고 분석하면 요약 결과가 여기에 표시됩니다"
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none transition-all bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--foreground)] placeholder:text-[var(--muted)] cursor-default opacity-80"
+              />
+              {analyzed?.keywords && analyzed.keywords.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {analyzed.keywords.map((kw) => (
                     <span key={kw} className="text-xs px-2 py-0.5 rounded-md bg-violet-500/10 text-[var(--accent2)] border border-violet-500/20">
                       {kw}
@@ -203,7 +205,18 @@ export default function ConditionForm() {
                 </div>
               )}
             </div>
-          )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleAnalyze()}
+            disabled={analyzing || (!bizDesc.trim() && !fileName)}
+            className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-violet-600 text-white font-semibold rounded-xl hover:from-cyan-500 hover:to-violet-500 transition disabled:from-slate-300 disabled:to-slate-400 disabled:text-slate-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {analyzing ? (
+              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />AI가 분석하고 있습니다...</>
+            ) : analyzed ? "다시 분석하기" : "AI로 사업 정보 분석하기"}
+          </button>
         </div>
       )}
 

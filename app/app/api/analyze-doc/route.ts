@@ -18,11 +18,11 @@ export async function POST(request: NextRequest) {
     let inputContent = "";
 
     if (file) {
-      // 이미지 파일인 경우 Gemini Vision으로 분석
-      if (file.type.startsWith("image/")) {
+      // 이미지 또는 PDF는 Gemini Vision으로 분석
+      if (file.type.startsWith("image/") || file.type === "application/pdf") {
         return analyzeWithVision(file);
       }
-      // 텍스트/PDF인 경우 텍스트 추출
+      // 텍스트 파일인 경우 텍스트 추출
       const buffer = await file.arrayBuffer();
       inputContent = new TextDecoder("utf-8").decode(buffer);
     } else if (text) {
