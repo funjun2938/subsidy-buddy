@@ -32,6 +32,7 @@ export default function ConditionForm() {
   const [bizDesc, setBizDesc] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [bizType, setBizType] = useState("");
@@ -45,8 +46,9 @@ export default function ConditionForm() {
     setAnalyzed(null);
     try {
       const fd = new FormData();
-      if (file) {
-        fd.append("file", file);
+      const targetFile = file ?? uploadedFile;
+      if (targetFile) {
+        fd.append("file", targetFile);
       } else if (bizDesc.trim()) {
         fd.append("text", bizDesc);
       } else {
@@ -72,6 +74,7 @@ export default function ConditionForm() {
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
+      setUploadedFile(file);
       storeFile(file).catch(() => {});
       handleAnalyze(file);
     }
@@ -83,6 +86,7 @@ export default function ConditionForm() {
     const file = e.dataTransfer.files[0];
     if (file) {
       setFileName(file.name);
+      setUploadedFile(file);
       storeFile(file).catch(() => {});
       handleAnalyze(file);
     }
