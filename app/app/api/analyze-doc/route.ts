@@ -68,6 +68,7 @@ const EXTRACT_PROMPT = `당신은 대한민국 사업자등록증 및 사업 서
 async function analyzeWithVision(file: File) {
   const genAI = getGemini();
   if (!genAI) {
+    console.error("[analyze-doc] GEMINI_API_KEY not set");
     return Response.json(
       { error: "Gemini API 키가 설정되지 않았습니다." },
       { status: 500 }
@@ -78,23 +79,34 @@ async function analyzeWithVision(file: File) {
   const buffer = await file.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
 
-  const result = await model.generateContent([
-    EXTRACT_PROMPT + "\n\n[분석 대상: 업로드된 이미지 (사업자등록증 또는 사업 관련 서류)]",
-    {
-      inlineData: {
-        mimeType: file.type,
-        data: base64,
-      },
-    },
-  ]);
-
-  const text = result.response.text();
-  const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  console.log(`[analyze-doc] vision analysis: ${file.name} (${file.type}, ${Math.round(buffer.byteLength / 1024)}KB)`);
 
   try {
-    return Response.json({ result: JSON.parse(cleaned) });
-  } catch {
-    return Response.json({ result: null, raw: cleaned });
+    const result = await model.generateContent([
+      EXTRACT_PROMPT + "\n\n[분석 대상: 업로드된 파일 (사업자등록증 또는 사업 관련 서류)]",
+      {
+        inlineData: {
+          mimeType: file.type,
+          data: base64,
+        },
+      },
+    ]);
+
+    const text = result.response.text();
+    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+    try {
+      return Response.json({ result: JSON.parse(cleaned) });
+    } catch {
+      console.error("[analyze-doc] JSON parse failed:", cleaned.slice(0, 200));
+      return Response.json({ error: "AI 응답을 파싱하지 못했습니다.", raw: cleaned });
+    }
+  } catch (e) {
+    console.error("[analyze-doc] Gemini vision error:", e);
+    return Response.json(
+      { error: `Gemini 분석 실패: ${e instanceof Error ? e.message : String(e)}` },
+      { status: 500 }
+    );
   }
 }
 
