@@ -31,6 +31,7 @@ export interface MatchResult {
   grant: Grant;
   matchScore: "high" | "medium" | "low";
   reason: string;
+  matchReasons?: string[];
 }
 
 export interface GrantAnalysis {
