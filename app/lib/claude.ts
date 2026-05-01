@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Grant, UserCondition, MatchResult, GrantAnalysis } from "./types";
+import { getMatchReasons } from "./match-reasons";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -84,6 +85,7 @@ ${JSON.stringify(grantsForPrompt, null, 2)}
           grant: grantMap.get(m.grantId)!,
           matchScore: m.matchScore as MatchResult["matchScore"],
           reason: m.reason,
+          matchReasons: getMatchReasons(grantMap.get(m.grantId)!, condition),
         })
       );
   } catch {

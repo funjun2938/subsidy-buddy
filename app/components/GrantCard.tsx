@@ -64,7 +64,17 @@ export default function GrantCard({
         </div>
       </div>
 
-      <p className="text-sm text-gray-400 mb-4 line-clamp-2 leading-relaxed">{reason}</p>
+      <p className="text-sm text-gray-400 mb-3 line-clamp-2 leading-relaxed">{reason}</p>
+
+      {match.matchReasons && match.matchReasons.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {match.matchReasons.map((r) => (
+            <span key={r} className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
+              ✓ {r}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-3 border-t border-white/5">
         <span className="text-sm font-bold text-cyan-400">{grant.amount}</span>

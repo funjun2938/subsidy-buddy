@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Grant, UserCondition, MatchResult, GrantAnalysis } from "./types";
+import { getMatchReasons } from "./match-reasons";
 
 function getGemini() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -130,11 +131,11 @@ export async function matchGrantsWithGemini(
   // 2단계: AI로 reason만 생성 (temperature=0)
   const genAI = getGemini();
   if (!genAI) {
-    // AI 없으면 룰 기반 결과만 반환
     return scored.map(s => ({
       grant: s.grant,
       matchScore: s.grade,
       reason: `업종(${condition.bizType})과 지역(${condition.region}) 기준 매칭`,
+      matchReasons: getMatchReasons(s.grant, condition),
     }));
   }
 
@@ -178,14 +179,15 @@ ${JSON.stringify(grantsForAI)}
       grant: s.grant,
       matchScore: s.grade,
       reason: reasonMap.get(s.grant.id) || `${condition.bizType} 분야 매칭`,
+      matchReasons: getMatchReasons(s.grant, condition),
     }));
   } catch (error) {
     console.error("[Gemini] Reason generation error:", error);
-    // AI 실패해도 룰 기반 결과 반환
     return scored.map(s => ({
       grant: s.grant,
       matchScore: s.grade,
       reason: `${condition.bizType} / ${condition.region} 기준 매칭 (점수: ${s.score})`,
+      matchReasons: getMatchReasons(s.grant, condition),
     }));
   }
 }
