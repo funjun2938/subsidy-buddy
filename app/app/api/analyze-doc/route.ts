@@ -7,8 +7,9 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const text = formData.get("text") as string | null;
+    const extraText = formData.get("extraText") as string | null;
 
-    if (!file && !text) {
+    if (!file && !text && !extraText) {
       return Response.json(
         { error: "파일 또는 사업 설명을 입력해주세요." },
         { status: 400 }
@@ -20,13 +21,19 @@ export async function POST(request: NextRequest) {
     if (file) {
       // 이미지 또는 PDF는 Gemini Vision으로 분석
       if (file.type.startsWith("image/") || file.type === "application/pdf") {
-        return analyzeWithVision(file);
+        return analyzeWithVision(file, extraText);
       }
       // 텍스트 파일인 경우 텍스트 추출
       const buffer = await file.arrayBuffer();
       inputContent = new TextDecoder("utf-8").decode(buffer);
     } else if (text) {
       inputContent = text;
+    }
+
+    if (extraText) {
+      inputContent = inputContent
+        ? `${inputContent}\n\n${extraText}`
+        : extraText;
     }
 
     return analyzeText(inputContent);
@@ -39,9 +46,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-const EXTRACT_PROMPT = `당신은 대한민국 사업자등록증 및 사업 서류 분석 전문가입니다.
+const EXTRACT_PROMPT = `당신은 대한민국 정부지원사업 매칭 전문가입니다. 사업자등록증, 사업 서류, 추가 입력 정보를 종합하여 분석합니다.
 
 아래 내용에서 다음 정보를 추출해주세요. 명시적으로 나와있지 않은 항목은 문맥에서 최대한 추론하세요.
+[추가 입력 정보] 섹션이 있다면 반드시 우선적으로 반영하고, 문서 내용과 함께 종합적으로 판단하세요.
 
 추출할 정보:
 1. bizType: 업종 (음식점·외식, 소매·유통, 제조, IT·소프트웨어, 서비스업, 교육, 건설, 농림수산, 기타 중 하나)
@@ -49,8 +57,11 @@ const EXTRACT_PROMPT = `당신은 대한민국 사업자등록증 및 사업 서
 3. region: 지역 (전국, 서울, 경기, 인천, 부산, 대구, 광주, 대전, 울산, 세종, 강원, 충북, 충남, 전북, 전남, 경북, 경남, 제주 중 하나)
 4. bizAge: 업력 (예비 창업, 1년 미만, 1~3년, 3~5년, 5~7년, 7년 이상 중 하나)
 5. ceoAge: 대표자 나이대 (만 29세 이하, 만 30~39세, 만 40~49세, 만 50~59세, 만 60세 이상 중 하나)
-6. summary: 이 사업에 대한 간단한 요약 (2~3문장)
-7. keywords: 지원사업 매칭에 유용한 키워드 3~5개
+6. employeeCount: 상시 직원 수 (없음, 1~4명, 5~9명, 10~49명, 50명 이상 중 하나). 추가 입력 정보에 명시된 경우 그대로 사용.
+7. ceoGender: 대표자 성별 (남성, 여성 중 하나). 추가 입력 정보에 명시된 경우 그대로 사용.
+8. certifications: 해당 인증·특성 목록 (벤처기업 인증, 이노비즈 인증, 수출 기업, 특허·IP 보유, 여성 대표자, 장애인 기업 중 해당하는 것들의 배열). 추가 입력 정보에 명시된 경우 그대로 사용.
+9. summary: 이 사업에 대한 간단한 요약 (2~3문장). 직원 수, 인증, 대표자 특성 등을 포함해 지원사업 관점에서 작성.
+10. keywords: 정부지원사업 매칭에 유용한 키워드 5~8개. 업종, 지역, 인증, 기술분야, 규모 등을 반영.
 
 반드시 아래 JSON 형식으로만 응답하세요 (마크다운 없이):
 {
@@ -59,13 +70,16 @@ const EXTRACT_PROMPT = `당신은 대한민국 사업자등록증 및 사업 서
   "region": "...",
   "bizAge": "...",
   "ceoAge": "...",
+  "employeeCount": "...",
+  "ceoGender": "...",
+  "certifications": ["...", "..."],
   "summary": "...",
   "keywords": ["...", "..."]
 }
 
-추출할 수 없는 항목은 빈 문자열("")로 남겨주세요.`;
+추출할 수 없는 항목은 빈 문자열("") 또는 빈 배열([])로 남겨주세요.`;
 
-async function analyzeWithVision(file: File) {
+async function analyzeWithVision(file: File, extraText?: string | null) {
   const genAI = getGemini();
   if (!genAI) {
     console.error("[analyze-doc] GEMINI_API_KEY not set");
@@ -81,9 +95,13 @@ async function analyzeWithVision(file: File) {
 
   console.log(`[analyze-doc] vision analysis: ${file.name} (${file.type}, ${Math.round(buffer.byteLength / 1024)}KB)`);
 
+  const extraSection = extraText
+    ? `\n\n${extraText}`
+    : "";
+
   try {
     const result = await model.generateContent([
-      EXTRACT_PROMPT + "\n\n[분석 대상: 업로드된 파일 (사업자등록증 또는 사업 관련 서류)]",
+      EXTRACT_PROMPT + "\n\n[분석 대상: 업로드된 파일 (사업자등록증 또는 사업 관련 서류)]" + extraSection,
       {
         inlineData: {
           mimeType: file.type,
