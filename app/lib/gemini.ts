@@ -8,61 +8,79 @@ function getGemini() {
   return new GoogleGenerativeAI(apiKey);
 }
 
-// ─── 룰 기반 사전 스코어링 (결정적, 매번 동일) ───
+// ─── 업종 인접 맵 ───
+const ADJACENT_BIZ_TYPES: Record<string, string[]> = {
+  "IT·소프트웨어": ["서비스업", "제조"],
+  "서비스업":      ["IT·소프트웨어", "소매·유통", "교육"],
+  "제조":          ["IT·소프트웨어", "농림수산", "건설"],
+  "소매·유통":     ["서비스업", "음식점·외식"],
+  "음식점·외식":   ["소매·유통", "서비스업"],
+  "교육":          ["서비스업"],
+  "건설":          ["제조"],
+  "농림수산":      ["제조"],
+};
+
+// ─── 룰 기반 사전 스코어링 ───
+// 설계 원칙:
+//  - 업종(bizType)이 1차 필터 — 명확히 다른 업종은 강하게 감점
+//  - 도메인 키워드는 보너스만 (패널티 없음) — API 용어 차이로 인한 오탈락 방지
+//  - 결과가 항상 동일하도록 동점 시 grant.id 기준 안정 정렬
 
 function ruleScore(grant: Grant, condition: UserCondition): number {
   let score = 0;
 
-  // 1. 지역 매칭 (0~15점)
+  // 1. 지역 (-10 ~ +15)
   if (grant.region === "전국") {
     score += 12;
   } else if (grant.region === condition.region) {
     score += 15;
   } else {
-    score -= 10; // 지역 불일치 감점
+    score -= 10;
   }
 
-  // 2. 업종 매칭 (0~15점)
+  // 2. 업종 (-15 ~ +20) — 핵심 필터
   if (grant.targetBizTypes.includes(condition.bizType)) {
-    score += 15;
+    score += 20; // 정확 일치
+  } else if (grant.targetBizTypes.length >= 5) {
+    score += 8;  // 사실상 전업종 대상 (5개 이상)
+  } else if (grant.targetBizTypes.some(t => (ADJACENT_BIZ_TYPES[condition.bizType] || []).includes(t))) {
+    score += 5;  // 인접 업종
   } else if (grant.targetBizTypes.includes("기타")) {
-    score += 5;
+    score += 3;  // 기타만 포함
   } else {
-    score -= 5;
+    score -= 15; // 명확히 다른 특정 업종만 타겟
   }
 
-  // 3. 업력 매칭 (0~10점)
+  // 3. 업력 (-15 ~ +10)
   const bizAgeNum = parseBizAge(condition.bizAge);
   if (grant.maxBizAge !== undefined && bizAgeNum > grant.maxBizAge) {
-    score -= 15; // 업력 초과 → 강한 감점
+    score -= 15;
   } else if (grant.minBizAge !== undefined && bizAgeNum < grant.minBizAge) {
     score -= 10;
   } else {
     score += 10;
   }
 
-  // 4. 도메인 키워드 매칭 — 가장 중요 (최대 50점, 최소 -20점)
+  // 4. 도메인 키워드 — 보너스만 (0 ~ +25), 패널티 없음
+  // 이유: 공문서 용어 vs 일반 용어 차이로 무고한 감점 발생 방지
   const domainText = (condition.summary || "") + " " + (condition.keywords?.join(" ") || "");
   if (domainText.trim()) {
     const grantText = grant.title + " " + grant.description + " " + grant.requirements;
-    const domainScore = calcKeywordOverlap(domainText, grantText);
-    if (domainScore >= 0.3) {
-      score += Math.round(domainScore * 50); // 키워드 30%+ 매칭 → 보너스
-    } else if (domainScore >= 0.1) {
-      score += Math.round(domainScore * 20); // 약한 관련성
-    } else {
-      score -= 20; // 도메인 완전 무관 → 강한 감점
+    const overlap = calcKeywordOverlap(domainText, grantText);
+    if (overlap >= 0.3) {
+      score += Math.round(overlap * 25);
+    } else if (overlap >= 0.1) {
+      score += Math.round(overlap * 15);
     }
-  } else {
-    score += 5; // 도메인 정보 없으면 약간 중립
+    // 미매칭(< 0.1)은 중립 — 업종·지역으로 충분히 필터링됨
   }
 
-  // 5. 마감 보너스 (0~10점)
+  // 5. 마감 (-30 ~ +10)
   if (grant.deadline !== "상시") {
     const daysLeft = Math.ceil((new Date(grant.deadline).getTime() - Date.now()) / 86400000);
     if (daysLeft > 0 && daysLeft <= 30) score += 10;
     else if (daysLeft > 30) score += 5;
-    else score -= 30; // 마감됨
+    else score -= 30;
   } else {
     score += 5;
   }
@@ -81,31 +99,36 @@ function parseBizAge(bizAge: string): number {
 }
 
 function calcKeywordOverlap(domain: string, grantText: string): number {
-  // 도메인 텍스트에서 핵심 단어 추출
   const domainWords = extractKeywords(domain);
-  if (domainWords.length === 0) return 0.5;
-
+  if (domainWords.length === 0) return 0;
   const grantLower = grantText.toLowerCase();
   let matched = 0;
   for (const word of domainWords) {
     if (grantLower.includes(word.toLowerCase())) matched++;
   }
-  return domainWords.length > 0 ? matched / domainWords.length : 0;
+  return matched / domainWords.length;
 }
 
 function extractKeywords(text: string): string[] {
-  // 불용어 제거 후 2글자 이상 단어만 추출
-  const stopwords = new Set(["있는", "하는", "위한", "대한", "통한", "관련", "기반", "등을", "또는", "및", "의", "에", "를", "을", "이", "가", "은", "는"]);
+  const stopwords = new Set([
+    "있는", "하는", "위한", "대한", "통한", "관련", "기반", "등을", "또는",
+    "및", "의", "에", "를", "을", "이", "가", "은", "는", "으로", "에서",
+    "하고", "하여", "있어", "없는", "그리고", "하지만", "그러나",
+  ]);
   return text
     .replace(/[^\w\s가-힣]/g, " ")
     .split(/\s+/)
     .filter(w => w.length >= 2 && !stopwords.has(w))
-    .slice(0, 15); // 최대 15개
+    .slice(0, 20);
 }
 
+// 점수 → 등급
+// 업종 정확 일치 + 전국 + 업력 ok + 마감 = 20+12+10+5 = 47 → high
+// 업종 인접   + 전국 + 업력 ok + 마감 = 5+12+10+5 = 32 → medium
+// 업종 불일치 + 전국 + 업력 ok + 마감 = -15+12+10+5 = 12 → low (필터)
 function scoreToGrade(score: number): "high" | "medium" | "low" {
-  if (score >= 55) return "high";   // 도메인 매칭 필수 (50점 배점)
-  if (score >= 30) return "medium";
+  if (score >= 40) return "high";
+  if (score >= 20) return "medium";
   return "low";
 }
 
@@ -115,16 +138,17 @@ export async function matchGrantsWithGemini(
   condition: UserCondition,
   grants: Grant[]
 ): Promise<MatchResult[]> {
-  // 1단계: 룰 기반 스코어링 (결정적)
+  // 1단계: 룰 기반 스코어링 (완전 결정적)
   const scored = grants
-    .map(grant => ({
-      grant,
-      score: ruleScore(grant, condition),
-      grade: scoreToGrade(ruleScore(grant, condition)),
-    }))
+    .slice() // 원본 배열 순서 불변
+    .sort((a, b) => a.id.localeCompare(b.id)) // 입력 정렬 안정화
+    .map(grant => {
+      const score = ruleScore(grant, condition);
+      return { grant, score, grade: scoreToGrade(score) };
+    })
     .filter(s => s.grade !== "low")
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 15); // 상위 15개만 AI에 전달
+    .sort((a, b) => b.score - a.score || a.grant.id.localeCompare(b.grant.id)) // 동점 시 id로 안정 정렬
+    .slice(0, 15);
 
   if (scored.length === 0) return [];
 
