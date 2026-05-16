@@ -135,7 +135,15 @@ function ResultsContent() {
                 >
                   AI 신청서 생성
                 </Link>
-                <Link href="/experts" className="text-xs px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 border border-pink-500/15 hover:bg-pink-500/20 transition">
+                <Link
+                  href={`/experts?${new URLSearchParams({
+                    ...(condition.summary ? { summary: condition.summary } : {}),
+                    ...(condition.bizType ? { bizType: condition.bizType } : {}),
+                    ...(condition.region ? { region: condition.region } : {}),
+                    ...(condition.keywords ? { keywords: condition.keywords.join(",") } : {}),
+                  }).toString()}`}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 border border-pink-500/15 hover:bg-pink-500/20 transition"
+                >
                   전문가 상담
                 </Link>
               </div>
