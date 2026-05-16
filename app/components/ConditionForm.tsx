@@ -44,6 +44,14 @@ export default function ConditionForm() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState<AnalyzedResult | null>(null);
   const [analyzeError, setAnalyzeError] = useState("");
+  const [analyzedSources, setAnalyzedSources] = useState<{
+    mainFile?: string;
+    extraFile?: string;
+    hasDesc: boolean;
+    employees?: string;
+    gender?: string;
+    certs: string[];
+  } | null>(null);
   const [bizDesc, setBizDesc] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -77,6 +85,14 @@ export default function ConditionForm() {
     setAnalyzing(true);
     setAnalyzed(null);
     setAnalyzeError("");
+    setAnalyzedSources({
+      mainFile: fileName || undefined,
+      extraFile: extraFileName || undefined,
+      hasDesc: !!bizDesc.trim(),
+      employees: employeeCount || undefined,
+      gender: ceoGender || undefined,
+      certs: Array.from(certifications),
+    });
     try {
       const fd = new FormData();
       if (uploadedFile) fd.append("file", uploadedFile);
@@ -381,40 +397,161 @@ export default function ConditionForm() {
 
           {/* AI 분석 결과 */}
           {(analyzed || analyzing || analyzeError) && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-[var(--muted)]">AI 분석 결과</span>
-                {analyzing && (
-                  <span className="text-xs text-cyan-500 flex items-center gap-1">
-                    <span className="w-2 h-2 border border-cyan-500 border-t-transparent rounded-full animate-spin inline-block" />
-                    분석 중...
+            <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-500/5 to-violet-500/5 overflow-hidden">
+              {/* 헤더 */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">AI 분석 결과</span>
+                  {analyzing && (
+                    <span className="flex items-center gap-1 text-xs text-cyan-500">
+                      <span className="w-3 h-3 border border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                      분석 중...
+                    </span>
+                  )}
+                </div>
+                {analyzed && !analyzing && (
+                  <span className="text-xs font-medium text-emerald-500 flex items-center gap-1">
+                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[9px]">✓</span>
+                    완료
                   </span>
                 )}
-                {analyzed && !analyzing && (
-                  <span className="text-xs text-emerald-500">✓ 완료</span>
-                )}
               </div>
-              <textarea
-                readOnly
-                value={analyzed?.summary ?? ""}
-                placeholder="분석 결과가 여기에 표시됩니다"
-                rows={3}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none transition-all bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--foreground)] placeholder:text-[var(--muted)] cursor-default opacity-80"
-              />
-              {analyzed?.keywords && analyzed.keywords.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {analyzed.keywords.map((kw) => (
-                    <span
-                      key={kw}
-                      className="text-xs px-2 py-0.5 rounded-md bg-violet-500/10 text-[var(--accent2)] border border-violet-500/20"
-                    >
-                      {kw}
-                    </span>
-                  ))}
-                </div>
+
+              {analyzed && !analyzing && analyzedSources && (
+                <>
+                  {/* 분석한 자료 목록 */}
+                  <div className="px-4 pt-3 pb-2">
+                    <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">
+                      AI가 읽은 자료
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {analyzedSources.mainFile && (
+                        <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                          <span>📄</span> {analyzedSources.mainFile}
+                        </span>
+                      )}
+                      {analyzedSources.extraFile && (
+                        <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                          <span>📎</span> {analyzedSources.extraFile}
+                        </span>
+                      )}
+                      {analyzedSources.hasDesc && (
+                        <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-500/10 text-[var(--muted)] border border-slate-500/20">
+                          <span>📝</span> 추가 설명
+                        </span>
+                      )}
+                      {analyzedSources.employees && (
+                        <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-500/10 text-[var(--muted)] border border-slate-500/20">
+                          <span>👥</span> 직원 {analyzedSources.employees}
+                        </span>
+                      )}
+                      {analyzedSources.gender && (
+                        <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-500/10 text-[var(--muted)] border border-slate-500/20">
+                          <span>👤</span> {analyzedSources.gender} 대표
+                        </span>
+                      )}
+                      {analyzedSources.certs.map((c) => (
+                        <span key={c} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span>🏆</span> {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mx-4 border-t border-cyan-500/10 my-1" />
+
+                  {/* 추출된 정보 그리드 */}
+                  <div className="px-4 pt-2 pb-3">
+                    <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">
+                      추출된 사업 정보
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "업종", value: analyzed.bizType },
+                        { label: "연 매출", value: analyzed.revenue },
+                        { label: "지역", value: analyzed.region },
+                        { label: "업력", value: analyzed.bizAge },
+                        { label: "대표 나이", value: analyzed.ceoAge },
+                        {
+                          label: "직원 수",
+                          value: analyzed.employeeCount || employeeCount || "-",
+                        },
+                      ].map(({ label, value }) => (
+                        <div
+                          key={label}
+                          className="rounded-lg bg-[var(--input-bg)] border border-[var(--input-border)] px-3 py-2"
+                        >
+                          <p className="text-[10px] text-[var(--muted)] mb-0.5">{label}</p>
+                          <p className="text-xs font-semibold text-[var(--foreground)] leading-tight">
+                            {value || "-"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* 인증·특성 */}
+                    {(() => {
+                      const certs =
+                        (analyzed.certifications && analyzed.certifications.length > 0)
+                          ? analyzed.certifications
+                          : Array.from(certifications);
+                      return certs.length > 0 ? (
+                        <div className="mt-2 rounded-lg bg-[var(--input-bg)] border border-[var(--input-border)] px-3 py-2">
+                          <p className="text-[10px] text-[var(--muted)] mb-1">인증·특성</p>
+                          <div className="flex flex-wrap gap-1">
+                            {certs.map((c) => (
+                              <span
+                                key={c}
+                                className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+
+                  <div className="mx-4 border-t border-cyan-500/10 my-1" />
+
+                  {/* AI 종합 의견 */}
+                  {analyzed.summary && (
+                    <div className="px-4 pt-2 pb-3">
+                      <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">
+                        AI 종합 의견
+                      </p>
+                      <p className="text-sm text-[var(--foreground)] leading-relaxed">
+                        {analyzed.summary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 매칭 키워드 */}
+                  {analyzed.keywords && analyzed.keywords.length > 0 && (
+                    <>
+                      <div className="mx-4 border-t border-cyan-500/10 my-1" />
+                      <div className="px-4 pt-2 pb-3">
+                        <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">
+                          지원사업 매칭 키워드
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {analyzed.keywords.map((kw) => (
+                            <span
+                              key={kw}
+                              className="text-xs px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20"
+                            >
+                              # {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
               )}
+
               {analyzeError && (
-                <p className="mt-2 text-xs text-red-400">{analyzeError}</p>
+                <p className="px-4 py-3 text-xs text-red-400">{analyzeError}</p>
               )}
             </div>
           )}
