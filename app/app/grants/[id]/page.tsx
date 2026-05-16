@@ -262,7 +262,16 @@ function Content() {
           >
             AI 신청서 생성
           </Link>
-          <Link href="/experts" className="block py-3 text-center glass rounded-xl text-sm font-semibold text-pink-400 hover:bg-pink-500/5 transition">
+          <Link
+            href={`/experts?${new URLSearchParams({
+              grantTitle: grant.title,
+              ...(sp.get("summary") ? { summary: sp.get("summary")! } : {}),
+              ...(sp.get("bizType") ? { bizType: sp.get("bizType")! } : {}),
+              ...(sp.get("region") ? { region: sp.get("region")! } : {}),
+              ...(sp.get("keywords") ? { keywords: sp.get("keywords")! } : {}),
+            }).toString()}`}
+            className="block py-3 text-center glass rounded-xl text-sm font-semibold text-pink-400 hover:bg-pink-500/5 transition"
+          >
             전문가에게 맡기기
           </Link>
         </div>

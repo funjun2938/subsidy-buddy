@@ -366,6 +366,7 @@ function ConsultModal({
   defaultBizType,
   defaultRegion,
   defaultKeywords,
+  defaultGrantTitle,
   onClose,
 }: {
   expert: Expert;
@@ -373,6 +374,7 @@ function ConsultModal({
   defaultBizType: string;
   defaultRegion: string;
   defaultKeywords: string;
+  defaultGrantTitle: string;
   onClose: () => void;
 }) {
   const c = colorMap[expert.color];
@@ -381,7 +383,7 @@ function ConsultModal({
     name: "",
     phone: "",
     email: "",
-    grantName: "",
+    grantName: defaultGrantTitle,
     bizSummary: defaultSummary,
     message: "",
   });
@@ -510,6 +512,9 @@ function ConsultModal({
                 <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                   상담 받고 싶은 지원사업
                   <span className="font-normal ml-1">(선택)</span>
+                  {defaultGrantTitle && (
+                    <span className="ml-1.5 text-[10px] text-pink-400 font-normal">자동 입력됨</span>
+                  )}
                 </label>
                 <input
                   name="grantName"
@@ -582,6 +587,7 @@ function ExpertsContent() {
   const defaultBizType = searchParams.get("bizType") || "";
   const defaultRegion = searchParams.get("region") || "";
   const defaultKeywords = searchParams.get("keywords") || "";
+  const defaultGrantTitle = searchParams.get("grantTitle") || "";
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-12">
@@ -716,6 +722,7 @@ function ExpertsContent() {
           defaultBizType={defaultBizType}
           defaultRegion={defaultRegion}
           defaultKeywords={defaultKeywords}
+          defaultGrantTitle={defaultGrantTitle}
           onClose={() => setConsultExpert(null)}
         />
       )}
