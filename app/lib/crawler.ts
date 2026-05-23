@@ -115,7 +115,7 @@ function parseBizInfoItem(item: BizInfoItem, idx: number): Grant {
       rawDesc,
       item.trgetNm || ""
     ),
-    amount: "공고 확인",
+    amount: guessAmount(rawDesc, item.pblancNm || "", item.hashtags || ""),
     deadline,
     description,
     requirements: item.trgetNm || "공고 원문 참조",
@@ -182,11 +182,36 @@ function guessTargetBizTypes(title: string, desc: string, target: string): strin
   if (/교육|학원|학습|훈련/.test(text)) types.push("교육");
   if (/건설|건축|시공|인테리어/.test(text)) types.push("건설");
   if (/농|수산|축산|임업|어업/.test(text)) types.push("농림수산");
-  if (/소상공인|자영업/.test(text)) types.push("소매·유통");
+  // 소상공인·자영업 키워드는 전업종 대상으로 처리 (특정 업종 하나로 제한하지 않음)
+  if (/소상공인|자영업/.test(text)) {
+    return ["소매·유통", "음식점·외식", "서비스업", "IT·소프트웨어", "제조", "교육", "패션·뷰티", "기타"];
+  }
 
   if (types.length === 0) {
     // 전업종 대상으로 처리 (fallback)
     return ["IT·소프트웨어", "제조", "서비스업", "소매·유통", "콘텐츠·미디어", "기타"];
   }
   return [...new Set(types)];
+}
+
+function guessAmount(desc: string, title: string, hashtags: string): string {
+  const text = desc + " " + title + " " + hashtags;
+
+  // 레이블이 붙은 금액 우선 (최대 N억원 / N천만원 / N백만원 / N만원)
+  const labeled = text.match(
+    /(?:지원금액|지원규모|지원한도|최대|최고|한도|보조금|지원액)[^\d]{0,15}([\d,]+)\s*(억원|천만원|백만원|만원)/
+  );
+  if (labeled) return `최대 ${labeled[1]}${labeled[2]}`;
+
+  // 레이블 없이 큰 단위 금액 (억/천만/백만)
+  const big = text.match(/([\d,]+)\s*(억원|천만원|백만원)/);
+  if (big) return `${big[1]}${big[2]}`;
+
+  // 만원 단위 — 100만원 이상만 표시 (너무 작은 숫자 필터)
+  const manwon = text.match(/([\d,]+)\s*만원/);
+  if (manwon && parseInt(manwon[1].replace(/,/g, ""), 10) >= 100) {
+    return `${manwon[1]}만원`;
+  }
+
+  return "공고 확인";
 }
