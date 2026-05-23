@@ -24,57 +24,55 @@ export async function fetchBizInfoGrants(): Promise<Grant[]> {
     return [];
   }
 
-  const allItems: BizInfoItem[] = [];
-  const MAX_PAGES = 5;
+  const fetchPage = async (page: number): Promise<{ items: BizInfoItem[]; totalCount?: number }> => {
+    const params = new URLSearchParams({
+      serviceKey: apiKey,
+      dataType: "json",
+      pageNo: String(page),
+      numOfRows: "100",
+    });
+    const res = await fetch(`${BIZINFO_BASE}?${params.toString()}`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) {
+      console.error(`[Crawler] Page ${page} error: ${res.status}`);
+      return { items: [] };
+    }
+    const data = await res.json();
+    const body = data?.response?.body;
+    const raw = body?.items?.item;
+    const items: BizInfoItem[] = !raw ? [] : Array.isArray(raw) ? raw : [raw];
+    return { items, totalCount: body?.totalCount };
+  };
 
   try {
-    for (let page = 1; page <= MAX_PAGES; page++) {
-      const params = new URLSearchParams({
-        serviceKey: apiKey,
-        dataType: "json",
-        pageNo: String(page),
-        numOfRows: "100",
-      });
-
-      const res = await fetch(`${BIZINFO_BASE}?${params.toString()}`, {
-        next: { revalidate: 3600 },
-      });
-
-      if (!res.ok) {
-        console.error(`[Crawler] BizInfo API page ${page} error:`, res.status);
-        break;
-      }
-
-      const data = await res.json();
-
-      // 응답 구조: response.body.items.item (단건이면 객체, 복수면 배열)
-      const raw = data?.response?.body?.items?.item;
-      if (!raw) break;
-      const items: BizInfoItem[] = Array.isArray(raw) ? raw : [raw];
-      if (items.length === 0) break;
-
-      allItems.push(...items);
-      console.log(`[Crawler] Page ${page}: ${items.length} items (total: ${allItems.length})`);
-
-      if (items.length < 100) break;
-    }
-
-    if (allItems.length === 0) {
+    // 1페이지로 totalCount 확인
+    const first = await fetchPage(1);
+    if (first.items.length === 0) {
       console.log("[Crawler] No items from BizInfo API");
       return [];
     }
 
-    console.log(`[Crawler] Total fetched: ${allItems.length} grants`);
-    return allItems
-      .filter((item) => item.pblancNm)
-      .map((item, idx) => parseBizInfoItem(item, idx));
+    const totalCount = first.totalCount ?? first.items.length;
+    const totalPages = Math.ceil(totalCount / 100);
+    console.log(`[Crawler] Total: ${totalCount} grants, ${totalPages} pages`);
+
+    // 나머지 페이지 병렬 fetch (5개씩 배치)
+    const remaining: BizInfoItem[] = [];
+    for (let batchStart = 2; batchStart <= totalPages; batchStart += 5) {
+      const pageNums = Array.from(
+        { length: Math.min(5, totalPages - batchStart + 1) },
+        (_, i) => batchStart + i
+      );
+      const results = await Promise.all(pageNums.map((p) => fetchPage(p)));
+      remaining.push(...results.flatMap((r) => r.items));
+    }
+
+    const allItems = [...first.items, ...remaining].filter((item) => item.pblancNm);
+    console.log(`[Crawler] Fetched: ${allItems.length} grants`);
+    return allItems.map((item, idx) => parseBizInfoItem(item, idx));
   } catch (error) {
     console.error("[Crawler] Fetch error:", error);
-    if (allItems.length > 0) {
-      return allItems
-        .filter((item) => item.pblancNm)
-        .map((item, idx) => parseBizInfoItem(item, idx));
-    }
     return [];
   }
 }
@@ -162,17 +160,33 @@ function guessRegion(title: string, hashtags: string): string {
 function guessTargetBizTypes(title: string, desc: string, target: string): string[] {
   const text = title + desc + target;
   const types: string[] = [];
-  if (/음식|외식|식품/.test(text)) types.push("음식점·외식");
-  if (/유통|소매|상점|스토어/.test(text)) types.push("소매·유통");
-  if (/제조|공장|생산/.test(text)) types.push("제조");
-  if (/IT|소프트웨어|디지털|AI|ICT|플랫폼|SaaS/.test(text)) types.push("IT·소프트웨어");
+
+  // 콘텐츠 세부 업종 (일반 서비스보다 먼저 체크)
+  if (/게임|gaming|e-?sports/.test(text)) types.push("게임");
+  if (/웹툰|만화|manhwa|comics|KOMICS/.test(text)) types.push("웹툰·만화");
+  if (/영상|방송|영화|드라마|OTT|콘텐츠|동영상|미디어/.test(text)) types.push("영상·방송");
+  if (/음악|뮤지션|K-?pop|케이팝|쇼케이스/.test(text)) types.push("음악");
+  if (/공연|예술|무대|전시|갤러리/.test(text)) types.push("공연·예술");
+
+  // 기타 세부 업종
+  if (/바이오|헬스케어|의료|제약|의약|헬스|바이오텍/.test(text)) types.push("바이오·헬스케어");
+  if (/패션|뷰티|화장품|의류|섬유|코스메틱/.test(text)) types.push("패션·뷰티");
+  if (/환경|에너지|친환경|탄소|신재생|그린|클린테크/.test(text)) types.push("환경·에너지");
+
+  // 기존 업종
+  if (/음식|외식|식품|식당|카페/.test(text)) types.push("음식점·외식");
+  if (/유통|소매|상점|스토어|쇼핑/.test(text)) types.push("소매·유통");
+  if (/제조|공장|생산|부품|소재/.test(text)) types.push("제조");
+  if (/IT|소프트웨어|디지털|AI|ICT|플랫폼|SaaS|앱|앱개발|개발/.test(text)) types.push("IT·소프트웨어");
   if (/서비스/.test(text)) types.push("서비스업");
-  if (/교육|학원/.test(text)) types.push("교육");
-  if (/건설|건축/.test(text)) types.push("건설");
-  if (/농|수산|축산|임업/.test(text)) types.push("농림수산");
+  if (/교육|학원|학습|훈련/.test(text)) types.push("교육");
+  if (/건설|건축|시공|인테리어/.test(text)) types.push("건설");
+  if (/농|수산|축산|임업|어업/.test(text)) types.push("농림수산");
   if (/소상공인|자영업/.test(text)) types.push("소매·유통");
+
   if (types.length === 0) {
-    return ["IT·소프트웨어", "제조", "서비스업", "소매·유통", "기타"];
+    // 전업종 대상으로 처리 (fallback)
+    return ["IT·소프트웨어", "제조", "서비스업", "소매·유통", "콘텐츠·미디어", "기타"];
   }
   return [...new Set(types)];
 }

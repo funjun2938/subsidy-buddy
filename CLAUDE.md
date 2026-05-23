@@ -78,3 +78,8 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+## Health Stack
+
+- typecheck: tsc --noEmit
+- lint: npx eslint app/ components/ lib/ --ext .ts,.tsx
