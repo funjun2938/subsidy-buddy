@@ -4,22 +4,74 @@
  * 인터뷰 인사이트 #2 반영:
  * "공고 제목이 너무 딱딱해서 뭐 하는 사업인지 모르겠어요."
  *
- * Iteration 1: 하드코딩된 응답으로 API/UI 와이어업 검증.
+ * Iteration 2: Gemini Flash로 실제 요약 생성.
+ *   - 학원/카페/음식점 사장님이 읽기 좋게 풀어서 한 문장.
+ *   - 전문 용어는 풀어쓰고 혜택을 앞에 둠.
+ *   - API 키 없거나 실패하면 폴백.
  */
 
-export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const { grantTitle } = body as { grantTitle?: string };
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-  if (!grantTitle) {
+const PROMPT = (title: string, description: string) => `
+당신은 소상공인(학원/카페/음식점 사장님)을 돕는 친근한 상담사입니다.
+아래 정부 지원사업을 사장님이 한눈에 이해할 수 있도록 "한 문장"으로 풀어 설명하세요.
+
+규칙:
+- 50자 이내, 한 문장
+- 공문서 용어는 일상어로 (예: "운영자금" → "가게 운영비")
+- 혜택(돈/지원)을 문장 앞에 두기
+- 존댓말, 친근한 톤
+- 따옴표/마크다운/이모지 금지
+
+제목: ${title}
+설명: ${description.slice(0, 800)}
+
+한 문장 요약:`.trim();
+
+function fallback(title: string): string {
+  return `${title} — 사장님께 도움될 수 있는 정부 지원사업이에요. 자세한 조건은 본문을 확인해주세요.`;
+}
+
+export async function POST(request: Request) {
+  let body: { grantTitle?: string; grantDescription?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const title = body.grantTitle?.trim();
+  const description = body.grantDescription?.trim() ?? "";
+
+  if (!title) {
     return Response.json(
       { ok: false, error: "grantTitle is required" },
       { status: 400 },
     );
   }
 
-  // TODO(iter2): Gemini 호출로 교체
-  const summary = `이 지원사업은 "${grantTitle}"의 핵심 혜택을 제공합니다. (요약 준비 중)`;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === "your_gemini_api_key_here") {
+    return Response.json({ ok: true, summary: fallback(title), source: "fallback" });
+  }
 
-  return Response.json({ ok: true, summary });
+  try {
+    const genai = new GoogleGenerativeAI(apiKey);
+    const model = genai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const result = await model.generateContent(PROMPT(title, description));
+    const text = result.response.text().trim().replace(/^["']|["']$/g, "");
+
+    if (!text) {
+      return Response.json({ ok: true, summary: fallback(title), source: "fallback" });
+    }
+    return Response.json({ ok: true, summary: text, source: "gemini" });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    return Response.json({
+      ok: true,
+      summary: fallback(title),
+      source: "fallback",
+      warning: msg,
+    });
+  }
 }

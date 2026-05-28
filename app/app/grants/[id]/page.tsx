@@ -43,13 +43,16 @@ function Content() {
       setAnalysis(data.analysis);
       setLoading(false);
 
-      // 사장님 친화 한 줄 요약 (Iter 1: 하드코딩)
+      // 사장님 친화 한 줄 요약 (Iter 2: Gemini 실제 호출)
       if (data.grant?.title) {
         try {
           const r = await fetch("/api/grant-summary", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ grantTitle: data.grant.title }),
+            body: JSON.stringify({
+              grantTitle: data.grant.title,
+              grantDescription: data.grant.description ?? "",
+            }),
           });
           const j = await r.json();
           if (j.ok) setEasySummary(j.summary);
