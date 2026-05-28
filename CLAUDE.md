@@ -83,3 +83,5 @@ Key routing rules:
 
 - typecheck: tsc --noEmit
 - lint: npx eslint app/ components/ lib/ --ext .ts,.tsx
+- test: npm test (Vitest, jsdom + React Testing Library)
+- test:e2e: npm run test:e2e (Playwright, Chromium)
