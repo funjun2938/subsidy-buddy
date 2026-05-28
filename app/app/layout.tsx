@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { MonetizationBlock } from "@/components/MonetizationBlock";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import FavoriteToast from "@/components/FavoriteToast";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -32,6 +33,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
           <MonetizationBlock enablePro />
+          <FavoriteToast />
         </ThemeProvider>
       </body>
     </html>

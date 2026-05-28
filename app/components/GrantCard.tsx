@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MatchResult } from "@/lib/types";
 import { getSuccessRate } from "@/lib/success-rates";
 import { useFavorites } from "@/lib/useFavorites";
+import { showFavoriteToast } from "@/components/FavoriteToast";
 import MatchScore from "@/components/MatchScore";
 
 function dDay(deadline: string): string {
@@ -92,7 +93,9 @@ export default function GrantCard({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          const willAdd = !favorited;
           toggle(match);
+          showFavoriteToast(willAdd);
         }}
         aria-label={favorited ? "즐겨찾기 해제" : "즐겨찾기 추가"}
         className={`absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all
