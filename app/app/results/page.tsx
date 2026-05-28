@@ -150,21 +150,46 @@ function ResultsContent() {
           <div className="flex items-center gap-2 mb-4">
             <button
               onClick={() => setHighOnly((v) => !v)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+              className={`text-xs px-3 py-1.5 rounded-lg border transition inline-flex items-center gap-1.5 ${
                 highOnly
                   ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                   : "bg-white/5 text-gray-400 border-white/10 hover:border-white/20"
               }`}
             >
-              적합도 높음만 보기
+              <span>적합도 높음만 보기</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded ${highOnly ? "bg-emerald-500/20" : "bg-white/10"}`}>
+                {highCount}
+              </span>
             </button>
+            {highOnly && (
+              <button
+                onClick={() => setHighOnly(false)}
+                className="text-[11px] text-gray-500 hover:text-gray-300 underline underline-offset-2"
+              >
+                필터 해제
+              </button>
+            )}
           </div>
 
-          <div className="space-y-4">
-            {(highOnly ? matches.filter((m) => m.matchScore === "high") : matches).map((m) => (
-              <GrantCard key={m.grant.id} match={m} searchParams={paramsString} />
-            ))}
-          </div>
+          {(() => {
+            const visible = highOnly ? matches.filter((m) => m.matchScore === "high") : matches;
+            if (highOnly && visible.length === 0) {
+              return (
+                <div className="text-center py-16 glass rounded-2xl">
+                  <div className="text-3xl mb-3">🎯</div>
+                  <p className="text-sm text-gray-300 mb-1">적합도 높음으로 분류된 매칭이 없습니다</p>
+                  <p className="text-xs text-gray-600">필터를 해제하면 {matches.length}개 매칭 결과를 볼 수 있어요</p>
+                </div>
+              );
+            }
+            return (
+              <div className="space-y-4">
+                {visible.map((m) => (
+                  <GrantCard key={m.grant.id} match={m} searchParams={paramsString} />
+                ))}
+              </div>
+            );
+          })()}
 
           {matches.length === 0 && (
             <div className="text-center py-20">
