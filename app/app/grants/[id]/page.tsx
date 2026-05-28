@@ -32,6 +32,7 @@ function Content() {
   const [analysis, setAnalysis] = useState<GrantAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [easySummary, setEasySummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -43,21 +44,25 @@ function Content() {
       setAnalysis(data.analysis);
       setLoading(false);
 
-      // 사장님 친화 한 줄 요약 (Iter 2: Gemini 실제 호출)
+      // 사장님 친화 한 줄 요약 (Iter 3: 캐싱 + 스켈레톤 + 에러 핸들링)
       if (data.grant?.title) {
+        setSummaryLoading(true);
         try {
           const r = await fetch("/api/grant-summary", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              grantId: data.grant.id,
               grantTitle: data.grant.title,
               grantDescription: data.grant.description ?? "",
             }),
           });
           const j = await r.json();
-          if (j.ok) setEasySummary(j.summary);
+          if (j.ok && j.summary) setEasySummary(j.summary);
         } catch {
-          // ignore — UI degrades gracefully
+          // UI degrades gracefully — card just hides
+        } finally {
+          setSummaryLoading(false);
         }
       }
     }
@@ -129,15 +134,22 @@ function Content() {
       </div>
 
       {/* 사장님 친화 한 줄 요약 (인터뷰 인사이트 #2 반영) */}
-      {easySummary && (
+      {(easySummary || summaryLoading) && (
         <div className="glass rounded-2xl border border-amber-500/15 p-5 mb-6">
           <div className="flex items-start gap-3">
             <span className="text-2xl flex-shrink-0">💡</span>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="text-[11px] font-bold text-amber-400 mb-1 tracking-wider">
                 사장님 한 줄 요약
               </div>
-              <p className="text-sm text-gray-200 leading-relaxed">{easySummary}</p>
+              {summaryLoading ? (
+                <div className="space-y-1.5 mt-1.5">
+                  <div className="h-3 rounded bg-white/5 animate-pulse w-full" />
+                  <div className="h-3 rounded bg-white/5 animate-pulse w-2/3" />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-200 leading-relaxed">{easySummary}</p>
+              )}
             </div>
           </div>
         </div>
