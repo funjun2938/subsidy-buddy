@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import AuthNav from "./AuthNav";
+import FavoritesNav from "./FavoritesNav";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Header() {
@@ -29,6 +30,7 @@ export default async function Header() {
           <Link href="/experts" className="px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-black/5 transition">
             전문가 매칭
           </Link>
+          <FavoritesNav />
           <Link href="/pricing" className="px-3 py-1.5 text-sm font-medium text-cyan-400 hover:text-cyan-300 rounded-lg hover:bg-cyan-500/5 transition">
             요금제
           </Link>
