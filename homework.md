@@ -96,8 +96,31 @@ The other surprise: the `eslint` score of 4/10 despite TypeScript being clean at
 
 ## 3) oh-my-claudecode Loop Capability
 
-> *To be completed after implementing a new feature with ≥ 3 loop iterations.*
+**Feature implemented:** Favorites / Bookmarks (즐겨찾기)
+
+### Loop iterations
+
+| # | Commit | What changed |
+|---|--------|-------------|
+| 1 | `683feda` | `useFavorites` hook (localStorage) + bookmark ★/☆ button on GrantCard + `/favorites` page |
+| 2 | `69fee0c` | `FavoritesNav` component with live count badge in Header + clear-all button on favorites page |
+| 3 | `c19e284` | `FavoriteToast` event-bus notification system + 6 unit tests for localStorage toggle logic |
+
+**Files created/modified across 3 iterations:**
+- `app/lib/useFavorites.ts` — new hook
+- `app/components/GrantCard.tsx` — added bookmark button
+- `app/components/FavoritesNav.tsx` — new nav badge
+- `app/components/FavoriteToast.tsx` — new toast system
+- `app/app/favorites/page.tsx` — new page
+- `app/app/layout.tsx` — mount toast globally
+- `app/__tests__/useFavorites.test.ts` — 6 new tests (30 total)
 
 ### a) What Surprised You Most About Multi-Iteration AI-Assisted Development
 
-*(Fill in after running /loop.)*
+**Each iteration naturally revealed what was missing from the previous one — without needing to plan it upfront.**
+
+After Iteration 1, the feature "worked" but felt incomplete: clicking the ★ button had no visible feedback beyond the button changing color. There was no way to know how many grants you'd bookmarked without navigating to `/favorites`. Iteration 2 added the count badge and the header link, which immediately exposed the next gap: the bookmark action was still silent — no confirmation that anything happened. Iteration 3 added the toast notification.
+
+The surprising part was that this felt less like "following a plan" and more like "using the product at each step." Each iteration's gaps became obvious only after the previous one ran. A single upfront implementation would have required predicting all three gaps before any code existed, which is much harder than noticing them in a working prototype.
+
+The other surprise: the loop naturally drove toward test coverage. By Iteration 3, the toast and hook logic were complex enough that the question "does this actually work correctly?" became unanswerable without tests — and writing them immediately found the right abstraction (testing the pure toggle logic separately from the React hook).
