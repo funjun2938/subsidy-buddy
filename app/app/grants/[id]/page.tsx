@@ -31,6 +31,7 @@ function Content() {
   const [grant, setGrant] = useState<Grant | null>(null);
   const [analysis, setAnalysis] = useState<GrantAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [easySummary, setEasySummary] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -41,6 +42,21 @@ function Content() {
       setGrant(data.grant);
       setAnalysis(data.analysis);
       setLoading(false);
+
+      // 사장님 친화 한 줄 요약 (Iter 1: 하드코딩)
+      if (data.grant?.title) {
+        try {
+          const r = await fetch("/api/grant-summary", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ grantTitle: data.grant.title }),
+          });
+          const j = await r.json();
+          if (j.ok) setEasySummary(j.summary);
+        } catch {
+          // ignore — UI degrades gracefully
+        }
+      }
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,6 +124,21 @@ function Content() {
           </span>
         </div>
       </div>
+
+      {/* 사장님 친화 한 줄 요약 (인터뷰 인사이트 #2 반영) */}
+      {easySummary && (
+        <div className="glass rounded-2xl border border-amber-500/15 p-5 mb-6">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">💡</span>
+            <div>
+              <div className="text-[11px] font-bold text-amber-400 mb-1 tracking-wider">
+                사장님 한 줄 요약
+              </div>
+              <p className="text-sm text-gray-200 leading-relaxed">{easySummary}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Rate Prediction */}
       <div className="glass rounded-2xl border border-cyan-500/10 p-6 mb-6">
