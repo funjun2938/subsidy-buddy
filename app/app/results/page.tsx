@@ -14,7 +14,14 @@ function ResultsContent() {
   const [error, setError] = useState("");
   const [totalGrants, setTotalGrants] = useState(0);
   const [source, setSource] = useState("");
-  const [highOnly, setHighOnly] = useState(false);
+  const [highOnly, setHighOnly] = useState(() => searchParams.get("highOnly") === "1");
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (highOnly) url.searchParams.set("highOnly", "1");
+    else url.searchParams.delete("highOnly");
+    window.history.replaceState(null, "", url.toString());
+  }, [highOnly]);
 
   const condition = {
     bizType: searchParams.get("bizType") || "",
