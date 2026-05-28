@@ -14,6 +14,7 @@ function ResultsContent() {
   const [error, setError] = useState("");
   const [totalGrants, setTotalGrants] = useState(0);
   const [source, setSource] = useState("");
+  const [highOnly, setHighOnly] = useState(false);
 
   const condition = {
     bizType: searchParams.get("bizType") || "",
@@ -146,8 +147,21 @@ function ResultsContent() {
             <SaveMatchSection conditions={condition} matchedGrants={matches} />
           )}
 
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => setHighOnly((v) => !v)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                highOnly
+                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                  : "bg-white/5 text-gray-400 border-white/10 hover:border-white/20"
+              }`}
+            >
+              적합도 높음만 보기
+            </button>
+          </div>
+
           <div className="space-y-4">
-            {matches.map((m) => (
+            {(highOnly ? matches.filter((m) => m.matchScore === "high") : matches).map((m) => (
               <GrantCard key={m.grant.id} match={m} searchParams={paramsString} />
             ))}
           </div>
