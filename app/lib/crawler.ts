@@ -15,12 +15,12 @@ async function fetchWithRetry(url: string, options?: RequestInit): Promise<Respo
       if (res.ok) return res;
       failureCount++;
       console.warn(`[Crawler] Request failed (failures: ${failureCount}, status: ${res.status}, url: ${url})`);
-      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS);
+      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS * Math.pow(2, attempt));
       else return res;
     } catch (error) {
       failureCount++;
       console.warn(`[Crawler] Request error (failures: ${failureCount}):`, error);
-      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS);
+      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS * Math.pow(2, attempt));
       else throw error;
     }
   }
