@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Grant, UserCondition, MatchResult, GrantAnalysis } from "./types";
 import { getMatchReasons } from "./match-reasons";
+import { rankGrants, fallbackResults } from "./scoring";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -10,86 +11,56 @@ export async function matchGrants(
   condition: UserCondition,
   grants: Grant[]
 ): Promise<MatchResult[]> {
-  const grantsForPrompt = grants.map((g) => ({
-    id: g.id,
-    title: g.title,
-    orgName: g.orgName,
-    category: g.category,
-    region: g.region,
-    targetBizTypes: g.targetBizTypes,
-    minBizAge: g.minBizAge,
-    maxBizAge: g.maxBizAge,
-    maxRevenue: g.maxRevenue,
-    ceoAgeLimit: g.ceoAgeLimit,
-    amount: g.amount,
-    deadline: g.deadline,
-    requirements: g.requirements,
+  // 1단계: 룰 기반 스코어링 (완전 결정적) — Gemini 경로와 동일
+  const scored = rankGrants(grants, condition);
+  if (scored.length === 0) return [];
+
+  // 2단계: Claude로 reason만 생성 (랭킹은 이미 확정)
+  const grantsForAI = scored.map(s => ({
+    id: s.grant.id,
+    title: s.grant.title,
+    grade: s.grade,
+    score: s.score,
   }));
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
-    messages: [
-      {
-        role: "user",
-        content: `당신은 대한민국 정부 지원사업 매칭 전문가입니다.
+  const prompt = `아래 사용자 정보와 룰 기반으로 스코어링된 지원사업 목록이 있습니다.
+각 지원사업에 대해 매칭 판정 이유를 한국어 1문장으로 작성해주세요.
+순서나 점수는 변경하지 마세요.
 
-아래 사용자 조건과 지원사업 목록을 비교하여, 각 지원사업에 대한 자격 충족 여부를 분석해주세요.
+[사용자]
+업종: ${condition.bizType} / 매출: ${condition.revenue} / 지역: ${condition.region} / 업력: ${condition.bizAge}
+${condition.summary ? `사업 내용: ${condition.summary}` : ""}
 
-[사용자 조건]
-- 업종: ${condition.bizType}
-- 연 매출: ${condition.revenue}
-- 지역: ${condition.region}
-- 업력: ${condition.bizAge}
-- 대표자 나이: ${condition.ceoAge}
-${condition.summary ? `- 사업 요약: ${condition.summary}` : ""}
-${condition.keywords?.length ? `- 핵심 키워드: ${condition.keywords.join(", ")}` : ""}
+[스코어링 결과]
+${JSON.stringify(grantsForAI)}
 
-[지원사업 목록]
-${JSON.stringify(grantsForPrompt, null, 2)}
-
-각 지원사업에 대해 분석하고, 매칭 점수가 높은 순서로 정렬해주세요.
-사용자의 실제 사업 도메인(업종, 사업 내용)과 지원사업의 대상이 일치하는지를 가장 중요한 기준으로 판단하세요.
-
-반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
-[
-  {
-    "grantId": "지원사업 id",
-    "matchScore": "high" | "medium" | "low",
-    "reason": "매칭 판정 이유 (한국어, 1~2문장)"
-  }
-]
-
-판정 기준:
-- high: 사업 도메인이 지원사업 대상에 부합하고, 자격 요건도 충족
-- medium: 일부 요건 충족, 도메인이 간접적으로 관련 있음
-- low: 도메인이 무관하거나 주요 요건 미충족`,
-      },
-    ],
-  });
-
-  const content = message.content[0];
-  if (content.type !== "text") return [];
+반드시 아래 JSON만 응답 (마크다운 없이):
+[{"id":"사업id","reason":"판정이유 1문장"}]`;
 
   try {
-    const parsed = JSON.parse(content.text);
-    const grantMap = new Map(grants.map((g) => [g.id, g]));
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2048,
+      temperature: 0,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-    return parsed
-      .filter(
-        (m: { grantId: string; matchScore: string }) =>
-          grantMap.has(m.grantId) && m.matchScore !== "low"
-      )
-      .map(
-        (m: { grantId: string; matchScore: string; reason: string }) => ({
-          grant: grantMap.get(m.grantId)!,
-          matchScore: m.matchScore as MatchResult["matchScore"],
-          reason: m.reason,
-          matchReasons: getMatchReasons(grantMap.get(m.grantId)!, condition),
-        })
-      );
-  } catch {
-    return [];
+    const content = message.content[0];
+    if (content.type !== "text") return fallbackResults(scored, condition);
+
+    const cleaned = content.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const reasons: { id: string; reason: string }[] = JSON.parse(cleaned);
+    const reasonMap = new Map(reasons.map(r => [r.id, r.reason]));
+
+    return scored.map(s => ({
+      grant: s.grant,
+      matchScore: s.grade,
+      reason: reasonMap.get(s.grant.id) || `${condition.bizType} 분야 매칭`,
+      matchReasons: getMatchReasons(s.grant, condition),
+    }));
+  } catch (error) {
+    console.error("[Claude] Reason generation error:", error);
+    return fallbackResults(scored, condition);
   }
 }
 
@@ -100,6 +71,7 @@ export async function analyzeGrant(
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 2048,
+    temperature: 0,
     messages: [
       {
         role: "user",
@@ -137,12 +109,7 @@ ${condition.keywords?.length ? `- 핵심 키워드: ${condition.keywords.join(",
 
   const content = message.content[0];
   if (content.type !== "text") {
-    return {
-      eligibility: "low",
-      reason: "분석에 실패했습니다.",
-      strategy: "",
-      risks: "",
-    };
+    return { eligibility: "low", reason: "분석에 실패했습니다.", strategy: "", risks: "" };
   }
 
   try {
