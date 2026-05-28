@@ -51,6 +51,9 @@ export default function GrantCard({
             <span className="text-[11px] px-2 py-0.5 rounded-md bg-white/5 text-gray-400 font-medium">
               {grant.category}
             </span>
+            <span className="text-[11px] px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 font-medium">
+              {grant.region}
+            </span>
             <span className="text-[11px] text-gray-600">{grant.orgName}</span>
           </div>
           <h3 className="text-base font-bold text-white leading-snug">{grant.title}</h3>
@@ -64,10 +67,15 @@ export default function GrantCard({
         </div>
       </div>
 
+      <div className="mb-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+        <div className="text-[10px] text-gray-500 mb-0.5">지원금 / 규모</div>
+        <div className="text-lg font-bold text-cyan-400">{grant.amount}</div>
+      </div>
+
       <p className="text-sm text-gray-400 mb-4 line-clamp-2 leading-relaxed">{reason}</p>
 
       <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        <span className="text-sm font-bold text-cyan-400">{grant.amount}</span>
+        <span className="text-[11px] text-gray-600">{grant.orgName}</span>
         <span className="text-[11px] text-gray-600">마감 {grant.deadline}</span>
       </div>
     </Link>
