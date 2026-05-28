@@ -1,5 +1,32 @@
 import { Grant } from "./types";
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, options?: RequestInit): Promise<Response> {
+  let failureCount = 0;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      failureCount++;
+      console.warn(`[Crawler] Request failed (failures: ${failureCount}, status: ${res.status}, url: ${url})`);
+      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS);
+      else return res;
+    } catch (error) {
+      failureCount++;
+      console.warn(`[Crawler] Request error (failures: ${failureCount}):`, error);
+      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS);
+      else throw error;
+    }
+  }
+  throw new Error("fetchWithRetry: unreachable");
+}
+
 interface BizInfoItem {
   pblancId?: string;
   pblancNm?: string;
@@ -39,12 +66,12 @@ export async function fetchBizInfoGrants(): Promise<Grant[]> {
         numOfRows: "100",
       });
 
-      const res = await fetch(`${BIZINFO_BASE}?${params.toString()}`, {
+      const res = await fetchWithRetry(`${BIZINFO_BASE}?${params.toString()}`, {
         next: { revalidate: 3600 },
       });
 
       if (!res.ok) {
-        console.error(`[Crawler] BizInfo API page ${page} error:`, res.status);
+        console.error(`[Crawler] BizInfo API page ${page} failed after ${MAX_RETRIES} retries:`, res.status);
         break;
       }
 
