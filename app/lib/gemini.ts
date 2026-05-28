@@ -151,18 +151,22 @@ export async function matchGrantsWithGemini(
   grants: Grant[]
 ): Promise<MatchResult[]> {
   // 1단계: 룰 기반 스코어링 (완전 결정적)
-  const scored = grants
+  const allScored = grants
     .slice() // 원본 배열 순서 불변
     .sort((a, b) => a.id.localeCompare(b.id)) // 입력 정렬 안정화
     .map(grant => {
       const score = ruleScore(grant, condition);
       return { grant, score, grade: scoreToGrade(score) };
     })
-    .filter(s => s.grade !== "low")
-    .sort((a, b) => b.score - a.score || a.grant.id.localeCompare(b.grant.id)) // 동점 시 id로 안정 정렬
-    .slice(0, 15);
+    .sort((a, b) => b.score - a.score || a.grant.id.localeCompare(b.grant.id)); // 동점 시 id로 안정 정렬
 
-  if (scored.length === 0) return [];
+  // 최소 결과 보장: high/medium 필터 후 0개면 상위 3개를 low로 표시
+  // 인터뷰 피드백: "간헐적으로 결과가 아예 안 나오는 케이스" 수정
+  const MINIMUM_RESULTS = 3;
+  const highMedium = allScored.filter(s => s.grade !== "low");
+  const scored = highMedium.length >= MINIMUM_RESULTS
+    ? highMedium.slice(0, 15)
+    : allScored.slice(0, MINIMUM_RESULTS);
 
   // 2단계: AI로 reason만 생성 (temperature=0)
   const genAI = getGemini();
