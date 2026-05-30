@@ -1,0 +1,537 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PricingPage > snapshot > matches snapshot 1`] = `
+<div
+  class="max-w-5xl mx-auto px-5 py-16"
+>
+  <div
+    class="text-center mb-14"
+  >
+    <h1
+      class="text-4xl font-black mb-3"
+    >
+      <span
+        class="gradient-text"
+      >
+        요금제
+      </span>
+    </h1>
+    <p
+      class="text-gray-400"
+    >
+      지원금 매칭은 무료. 더 많은 기능이 필요할 때 업그레이드하세요.
+    </p>
+  </div>
+  <div
+    class="grid grid-cols-1 md:grid-cols-3 gap-5"
+  >
+    <div
+      class="relative glass rounded-3xl border border-white/5 p-7 flex flex-col transition-all hover:scale-[1.02]"
+    >
+      <div
+        class="w-full h-1 rounded-full bg-gradient-to-r from-gray-500/20 to-gray-500/5 mb-6"
+      />
+      <h2
+        class="text-lg font-bold mb-1"
+      >
+        무료
+      </h2>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        시작하기 좋은 기본 플랜
+      </p>
+      <div
+        class="mb-6"
+      >
+        <span
+          class="text-4xl font-black"
+        >
+          0
+        </span>
+        <span
+          class="text-sm text-gray-500"
+        >
+          원
+        </span>
+      </div>
+      <ul
+        class="space-y-3 flex-1 mb-7"
+      >
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            AI 지원사업 매칭
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            매칭 결과 3건까지 보기
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            사업자등록증 AI 분석
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-gray-700"
+          >
+            —
+          </span>
+          <span
+            class="text-gray-600"
+          >
+            상세 자격 분석
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-gray-700"
+          >
+            —
+          </span>
+          <span
+            class="text-gray-600"
+          >
+            AI 신청서 생성
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-gray-700"
+          >
+            —
+          </span>
+          <span
+            class="text-gray-600"
+          >
+            마감 알림
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-gray-700"
+          >
+            —
+          </span>
+          <span
+            class="text-gray-600"
+          >
+            전문가 매칭
+          </span>
+        </li>
+      </ul>
+      <a
+        class="w-full py-3 rounded-xl font-semibold text-sm transition-all text-center bg-white/5 text-white hover:bg-white/10"
+        href="/"
+      >
+        무료로 시작
+      </a>
+    </div>
+    <div
+      class="relative glass rounded-3xl border border-cyan-500/20 p-7 flex flex-col transition-all hover:scale-[1.02]"
+    >
+      <div
+        class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 text-white text-xs font-bold shadow-lg"
+      >
+        인기
+      </div>
+      <div
+        class="w-full h-1 rounded-full bg-gradient-to-r from-cyan-500/20 to-violet-500/10 mb-6"
+      />
+      <h2
+        class="text-lg font-bold mb-1"
+      >
+        프리미엄
+      </h2>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        지원사업을 놓치지 않는 플랜
+      </p>
+      <div
+        class="mb-6"
+      >
+        <span
+          class="text-4xl font-black"
+        >
+          9,900
+        </span>
+        <span
+          class="text-sm text-gray-500"
+        >
+          원
+          /월
+        </span>
+      </div>
+      <ul
+        class="space-y-3 flex-1 mb-7"
+      >
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            AI 지원사업 매칭 (무제한)
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            전체 매칭 결과 보기
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            상세 AI 자격 분석
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            마감 D-7, D-3, D-1 알림
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            신규 공고 실시간 알림
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            AI 신청서 생성 월 3건
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            전문가 매칭 할인 10%
+          </span>
+        </li>
+      </ul>
+      <a
+        class="w-full py-3 rounded-xl font-semibold text-sm transition-all text-center bg-gradient-to-r from-cyan-500 to-violet-500 text-white hover:from-cyan-400 hover:to-violet-400 shadow-lg shadow-cyan-500/20"
+        href="/checkout?plan=premium"
+      >
+        프리미엄 시작
+      </a>
+    </div>
+    <div
+      class="relative glass rounded-3xl border border-violet-500/20 p-7 flex flex-col transition-all hover:scale-[1.02]"
+    >
+      <div
+        class="w-full h-1 rounded-full bg-gradient-to-r from-violet-500/20 to-pink-500/10 mb-6"
+      />
+      <h2
+        class="text-lg font-bold mb-1"
+      >
+        비즈니스
+      </h2>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        대행까지 한번에 해결하는 플랜
+      </p>
+      <div
+        class="mb-6"
+      >
+        <span
+          class="text-4xl font-black"
+        >
+          49,000
+        </span>
+        <span
+          class="text-sm text-gray-500"
+        >
+          원
+          /월
+        </span>
+      </div>
+      <ul
+        class="space-y-3 flex-1 mb-7"
+      >
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            프리미엄 전체 기능 포함
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            AI 신청서 생성 무제한
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            전문가 1:1 전담 배정
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            신청 대행 수수료 50% 할인
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            합격률 분석 리포트
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            R&D 과제 특화 분석
+          </span>
+        </li>
+        <li
+          class="flex items-start gap-2.5 text-sm"
+        >
+          <span
+            class="mt-0.5 text-xs text-cyan-400"
+          >
+            ✓
+          </span>
+          <span
+            class="text-gray-300"
+          >
+            우선 고객 지원
+          </span>
+        </li>
+      </ul>
+      <a
+        class="w-full py-3 rounded-xl font-semibold text-sm transition-all text-center bg-gradient-to-r from-violet-500 to-pink-500 text-white hover:from-violet-400 hover:to-pink-400 shadow-lg shadow-violet-500/20"
+        href="/checkout?plan=business"
+      >
+        비즈니스 시작
+      </a>
+    </div>
+  </div>
+  <div
+    class="mt-16 text-center"
+  >
+    <h2
+      class="text-xl font-bold mb-6"
+    >
+      건당 서비스
+    </h2>
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto"
+    >
+      <div
+        class="glass rounded-2xl p-6 border border-white/5"
+      >
+        <div
+          class="text-2xl mb-3"
+        >
+          📝
+        </div>
+        <h3
+          class="font-bold mb-1"
+        >
+          AI 신청서 생성
+        </h3>
+        <p
+          class="text-xs text-gray-500 mb-3"
+        >
+          지원사업에 맞는 사업계획서 초안을 AI가 작성
+        </p>
+        <div
+          class="text-2xl font-black text-violet-400"
+        >
+          29,900
+          <span
+            class="text-sm text-gray-500 font-normal"
+          >
+            원/건
+          </span>
+        </div>
+        <a
+          class="mt-4 block text-xs text-violet-400 hover:text-violet-300 transition"
+          href="/generate"
+        >
+          자세히 보기 →
+        </a>
+      </div>
+      <div
+        class="glass rounded-2xl p-6 border border-white/5"
+      >
+        <div
+          class="text-2xl mb-3"
+        >
+          👨‍💼
+        </div>
+        <h3
+          class="font-bold mb-1"
+        >
+          전문가 신청 대행
+        </h3>
+        <p
+          class="text-xs text-gray-500 mb-3"
+        >
+          검증된 세무사·변리사·노무사가 직접 대행
+        </p>
+        <div
+          class="text-2xl font-black text-pink-400"
+        >
+          10~15
+          <span
+            class="text-sm text-gray-500 font-normal"
+          >
+            % 수수료
+          </span>
+        </div>
+        <a
+          class="mt-4 block text-xs text-pink-400 hover:text-pink-300 transition"
+          href="/checkout?plan=expert"
+        >
+          착수금 결제하기 →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+`;
