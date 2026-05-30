@@ -11,6 +11,11 @@ export default defineConfig({
     include: ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
     exclude: ["node_modules", ".next", "e2e/**"],
     css: false,
+    coverage: {
+      provider: "v8",
+      include: ["lib/**/*.ts", "components/**/*.tsx"],
+      exclude: ["lib/supabase/**", "**/*.test.{ts,tsx}"],
+    },
   },
   resolve: {
     alias: {
