@@ -1,0 +1,220 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Footer component > snapshot > matches snapshot 1`] = `
+<footer
+  class="border-t border-[var(--footer-border)] mt-20"
+>
+  <div
+    class="max-w-5xl mx-auto px-5 py-12"
+  >
+    <div
+      class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10"
+    >
+      <div
+        class="col-span-2 md:col-span-1"
+      >
+        <a
+          class="inline-flex items-center gap-2.5 group"
+          href="/"
+        >
+          <div
+            class="relative w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-lg shadow-cyan-500/20"
+          >
+            <span
+              class="text-white font-black text-xs"
+            >
+              B
+            </span>
+          </div>
+          <div>
+            <span
+              class="font-bold text-sm tracking-tight text-[var(--foreground)]"
+            >
+              보조금매칭
+            </span>
+            <span
+              class="text-[9px] ml-1 px-1 py-0.5 rounded bg-cyan-500/10 text-cyan-500 font-semibold"
+            >
+              AI
+            </span>
+          </div>
+        </a>
+        <p
+          class="mt-4 text-xs leading-relaxed text-[var(--muted)]"
+        >
+          사업자등록증 한 장으로 정부 지원금을 자동 매칭합니다.
+        </p>
+        <div
+          class="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+        >
+          <span
+            class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+          />
+          <span
+            class="text-[10px] font-semibold text-emerald-500"
+          >
+            500+ 공고 실시간 매칭 중
+          </span>
+        </div>
+      </div>
+      <div>
+        <h3
+          class="text-xs font-semibold text-[var(--foreground)] mb-4 tracking-wide"
+        >
+          서비스
+        </h3>
+        <ul
+          class="space-y-2.5"
+        >
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/generate"
+            >
+              AI 문서생성
+            </a>
+          </li>
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/experts"
+            >
+              전문가 매칭
+            </a>
+          </li>
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/pricing"
+            >
+              요금제
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h3
+          class="text-xs font-semibold text-[var(--foreground)] mb-4 tracking-wide"
+        >
+          프로젝트
+        </h3>
+        <ul
+          class="space-y-2.5"
+        >
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/"
+            >
+              프로젝트 소개
+            </a>
+          </li>
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="https://github.com/funjun2938/subsidy-buddy"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              GitHub
+            </a>
+          </li>
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="mailto:support@subsidy-ai.kr"
+            >
+              문의 이메일
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h3
+          class="text-xs font-semibold text-[var(--foreground)] mb-4 tracking-wide"
+        >
+          법적 정보
+        </h3>
+        <ul
+          class="space-y-2.5"
+        >
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/terms"
+            >
+              이용약관
+            </a>
+          </li>
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/privacy"
+            >
+              개인정보처리방침
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div
+      class="border-t border-[var(--footer-border)] pt-6 mb-6"
+    >
+      <p
+        class="text-[10px] text-[var(--muted)] mb-2 tracking-wide font-semibold uppercase"
+      >
+        Data Sources
+      </p>
+      <div
+        class="flex flex-wrap items-center gap-x-4 gap-y-2"
+      >
+        <a
+          class="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          href="https://www.bizinfo.go.kr/"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          기업마당 공공API
+        </a>
+        <a
+          class="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          href="https://www.gov.kr/"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          정부24
+        </a>
+        <a
+          class="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          href="https://www.semas.or.kr/"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          소상공인진흥공단
+        </a>
+        <span
+          class="text-[10px] text-[var(--muted)]"
+        >
+          · 큐레이션된 시드 데이터 30+ 프로그램
+        </span>
+      </div>
+    </div>
+    <div
+      class="border-t border-[var(--footer-border)] pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+    >
+      <p
+        class="text-[10px] text-[var(--muted)] leading-relaxed max-w-2xl"
+      >
+        AI 분석 결과는 참고용이며 실제 자격 요건과 합격 여부는 공고 원문과 소관 부처를 통해 확인하세요. 보조금매칭AI는 정부기관과 제휴된 서비스가 아닙니다.
+      </p>
+      <p
+        class="text-[10px] text-[var(--muted)] whitespace-nowrap"
+      >
+        © 
+        2026
+         보조금매칭AI · Built with Next.js + Gemini · MIT
+      </p>
+    </div>
+  </div>
+</footer>
+`;
