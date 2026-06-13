@@ -1,6 +1,15 @@
 # Internal team docs (not for GitHub)
 docs/ta-review.html
 docs/team-todo.html
+docs/HWP-원문양식-자동기입-설계.html
+_제안문서/
+homework.md
+assignment-reflection.md
+
+# Tooling state (local only)
+.omc/
+app/docs/.bkit-memory.json
+app/docs/.pdca-status.json
 
 # Dependencies
 node_modules/
