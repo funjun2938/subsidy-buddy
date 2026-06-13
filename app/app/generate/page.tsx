@@ -327,6 +327,8 @@ function GenerateContent() {
     "application/haansofthwp", "application/x-hwp",
   ];
   const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".pdf", ".txt", ".doc", ".docx", ".hwp"];
+  // AI 자동 기입이 가능한 양식 확장자 (.hwp / .hwpx 둘 다 지원)
+  const canAutoFill = (ext: string) => ext === "hwpx" || ext === "hwp";
 
   function validateFile(file: File): boolean {
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
@@ -393,10 +395,10 @@ function GenerateContent() {
         body: JSON.stringify({ grantTitle, bizInfo: finalBizInfo }),
       }).then(async (res) => res.json());
 
-      // HWPX 자동 기입은 선택된 첨부가 HWPX일 때 또는 수동 업로드 파일이 있을 때만
-      const canAutoFill =
-        (selectedAttachment && selectedAttachment.ext === "hwpx") || !!hwpxFile;
-      const hwpPromise = canAutoFill
+      // 자동 기입은 선택된 첨부가 .hwp/.hwpx 일 때 또는 수동 업로드 파일이 있을 때만
+      const canFillNow =
+        (selectedAttachment && canAutoFill(selectedAttachment.ext)) || !!hwpxFile;
+      const hwpPromise = canFillNow
         ? (async () => {
             try {
               await handleFillOriginalForm();
@@ -446,16 +448,16 @@ function GenerateContent() {
 
       if (pick) {
         setSelectedAttachment(pick);
-        if (pick.ext === "hwpx") {
+        if (canAutoFill(pick.ext)) {
           setHwpStatus(
-            `✓ 공고 첨부 ${att.length}개 인식 — AI가 신청서를 선택했어요: ${pick.filename}\n` +
+            `✓ 공고 첨부 ${att.length}개 인식 — AI가 신청서를 선택했어요: ${pick.filename} (${pick.ext.toUpperCase()})\n` +
             `"사업계획서 생성하기"를 누르면 AI가 이 양식을 채워서 다운로드해드립니다.`
           );
         } else {
           setHwpStatus(
             `✓ 신청서가 "${pick.filename}"(${pick.ext.toUpperCase()})로 확인됐어요.\n` +
             `⚠️ ${pick.ext.toUpperCase()}는 AI 자동 기입 대상이 아니라 "↓ 원본"으로 다운로드한 뒤 한컴오피스에서 직접 작성해야 합니다.\n` +
-            `AI 자동 기입을 쓰시려면 HWPX로 변환 후 아래 수동 업로드 슬롯에 올려주세요.`
+            `(.hwp/.hwpx 신청서는 AI가 바로 채워드립니다.)`
           );
         }
       } else if (att.length === 0) {
@@ -472,12 +474,12 @@ function GenerateContent() {
     }
   }
 
-  // HWPX 파일 입력 핸들러 (수동 업로드 모드 — 공고 미선택 시 fallback)
+  // 양식 파일 입력 핸들러 (수동 업로드 모드 — 공고 미선택 시 fallback). .hwp / .hwpx 지원.
   function handleHwpxSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".hwpx")) {
-      setHwpxFileError("HWPX 파일만 지원합니다. (HWP는 한컴오피스에서 .hwpx로 저장 후 업로드)");
+    if (!/\.hwpx?$/i.test(file.name)) {
+      setHwpxFileError("HWP 또는 HWPX 파일만 지원합니다.");
       setHwpxFile(null);
       return;
     }
@@ -490,26 +492,26 @@ function GenerateContent() {
     setHwpStatus("");
   }
 
-  // 원본 HWPX 자동 기입 — 선택된 공고 첨부(HWPX)가 있으면 edge 라우트로 다운로드 → multipart로 fill-hwp-ai 호출
+  // 원본 양식 자동 기입 — 선택된 공고 첨부(.hwp/.hwpx)가 있으면 edge 라우트로 다운로드 → multipart로 fill-hwp-ai 호출
   // 입력 우선순위:
-  //   (1) 사용자가 선택한 공고 첨부 URL (HWPX일 때만 자동 기입 가능)
-  //   (2) 직접 업로드한 HWPX 파일
-  //   선택된 첨부가 HWP/PDF/ZIP이면 자동 기입은 포기하고 "원본 다운로드해서 수동 작성" 안내만.
+  //   (1) 사용자가 선택한 공고 첨부 URL (.hwp/.hwpx 일 때 자동 기입 가능)
+  //   (2) 직접 업로드한 .hwp/.hwpx 파일
+  //   선택된 첨부가 PDF/ZIP/DOC이면 자동 기입은 포기하고 "원본 다운로드해서 수동 작성" 안내만.
   async function handleFillOriginalForm() {
     if (fillingHwp) return;
-    // 선택된 첨부가 HWPX가 아니면 AI 자동 기입 불가 — 안내만 하고 끝
-    if (selectedAttachment && selectedAttachment.ext !== "hwpx") {
+    // 선택된 첨부가 .hwp/.hwpx 가 아니면 AI 자동 기입 불가 — 안내만 하고 끝
+    if (selectedAttachment && !canAutoFill(selectedAttachment.ext)) {
       const ext = selectedAttachment.ext.toUpperCase();
       setHwpStatus(
         `⚠️ 선택된 "${selectedAttachment.filename}"은 ${ext} 파일이라 AI 자동 기입이 불가합니다.\n` +
         `카드 우측 "↓ 원본"으로 파일을 받아 한컴오피스에서 직접 작성하세요.\n` +
-        `또는 HWPX로 변환한 뒤 "다시 생성" 아래 수동 업로드 슬롯에 올려주세요.`
+        `(.hwp/.hwpx 신청서는 AI가 바로 채워드립니다.)`
       );
       return;
     }
-    const hasAttachment = !!selectedAttachment && selectedAttachment.ext === "hwpx";
+    const hasAttachment = !!selectedAttachment && canAutoFill(selectedAttachment.ext);
     if (!hasAttachment && !hwpxFile) {
-      setHwpStatus("AI 자동 기입하려면 HWPX 신청서를 선택하거나 직접 업로드하세요.");
+      setHwpStatus("AI 자동 기입하려면 .hwp/.hwpx 신청서를 선택하거나 직접 업로드하세요.");
       return;
     }
     const text = bizInfo.trim();
@@ -579,7 +581,7 @@ function GenerateContent() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const sourceName = hasAttachment ? selectedAttachment!.filename : hwpxFile!.name;
-      const baseName = sourceName.replace(/\.hwpx$/i, "");
+      const baseName = sourceName.replace(/\.hwpx?$/i, "");
       const downloadName = `${baseName}_AI작성.zip`;
 
       // 결과 zip에서 채워진 양식의 텍스트 미리보기를 추출 — 한컴 없이도 화면에서 확인
@@ -915,7 +917,7 @@ function GenerateContent() {
                       </div>
                     </div>
                     {grantAttachments.map((att, i) => {
-                      const aiFillable = att.ext === "hwpx"; // AI가 실제로 채울 수 있는 건 HWPX만
+                      const aiFillable = canAutoFill(att.ext); // AI가 채울 수 있는 건 .hwp/.hwpx
                       const selected = selectedAttachment?.downloadUrl === att.downloadUrl;
                       const kindStyle = KIND_LABELS[att.kind];
                       return (
@@ -930,11 +932,11 @@ function GenerateContent() {
                             }
                             setSelectedAttachment(att);
                             const kindLabel = KIND_LABELS[att.kind].label;
-                            if (att.ext === "hwpx") {
+                            if (canAutoFill(att.ext)) {
                               setHwpStatus(
                                 att.kind === "application"
-                                  ? `✓ 신청서 선택: ${att.filename}\nAI가 표 셀에 직접 답변을 채워줍니다.`
-                                  : `⚠️ "${kindLabel}" HWPX를 AI 기입 대상으로 선택했어요. 의도한 게 맞으면 그대로 진행하세요.`
+                                  ? `✓ 신청서 선택: ${att.filename} (${att.ext.toUpperCase()})\nAI가 표 셀에 직접 답변을 채워줍니다.`
+                                  : `⚠️ "${kindLabel}"(${att.ext.toUpperCase()})를 AI 기입 대상으로 선택했어요. 의도한 게 맞으면 그대로 진행하세요.`
                               );
                             } else {
                               setHwpStatus(
@@ -1003,19 +1005,19 @@ function GenerateContent() {
               </div>
             )}
 
-            {/* HWP 안내 박스 — 공고에서 신청서가 HWP로만 있을 때 노출 */}
-            {pblancId && selectedAttachment && selectedAttachment.ext !== "hwpx" && (
+            {/* 자동 기입 불가 포맷(PDF/DOC/ZIP 등) 안내 박스 — .hwp/.hwpx 는 자동 기입되므로 제외 */}
+            {pblancId && selectedAttachment && !canAutoFill(selectedAttachment.ext) && (
               <div className="rounded-xl p-4 bg-amber-500/5 border border-amber-500/20 mb-3 text-xs text-amber-100/90 leading-relaxed space-y-2">
                 <div className="flex items-center gap-2 font-semibold text-amber-300">
                   <span>⚠️</span>
-                  <span>이 공고의 신청서는 HWP(구버전) 입니다 — AI 자동 기입이 불가해 수동 변환이 필요해요</span>
+                  <span>이 신청서는 {selectedAttachment.ext.toUpperCase()} 형식이라 AI 자동 기입이 불가합니다</span>
                 </div>
                 <ol className="list-decimal list-inside space-y-1 text-amber-100/80">
                   <li>
                     위 카드의 <span className="font-mono">↓ 원본</span> 버튼으로 <b>{selectedAttachment.filename}</b>를 다운로드하세요.
                   </li>
                   <li>
-                    한컴오피스(또는 무료 한컴 뷰어/뷰어+)로 파일을 엽니다.
+                    한컴오피스(또는 무료 한컴 뷰어/뷰어+)로 열어 직접 작성합니다.
                     <br />
                     <span className="text-[11px] text-amber-200/70">
                       · Windows: 한컴오피스 뷰어 무료 —{" "}
@@ -1027,15 +1029,10 @@ function GenerateContent() {
                       >
                         한컴 공식 다운로드
                       </a>
-                      <br />
-                      · macOS: 한글 앱(유료) 필요. 또는 온라인 변환(cloudconvert.com)
                     </span>
                   </li>
                   <li>
-                    [파일] → [다른 이름으로 저장] → 파일 형식을 <b>HWPX</b>로 선택 → 저장
-                  </li>
-                  <li>
-                    변환된 <b>.hwpx</b> 파일을 아래 <b>"변환한 HWPX 업로드"</b> 슬롯에 올리세요.
+                    💡 <b>.hwp / .hwpx</b> 형식 신청서는 AI가 바로 채워드립니다. 아래 슬롯에 직접 올려도 됩니다.
                   </li>
                 </ol>
               </div>
@@ -1047,7 +1044,7 @@ function GenerateContent() {
               className={`relative border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${
                 hwpxFile
                   ? "border-cyan-500/40 bg-cyan-500/5"
-                  : selectedAttachment && selectedAttachment.ext !== "hwpx"
+                  : selectedAttachment && !canAutoFill(selectedAttachment.ext)
                   ? "border-amber-500/40 bg-amber-500/5 hover:border-amber-400/60"
                   : "border-white/10 hover:border-cyan-500/30 bg-white/2"
               }`}
@@ -1055,7 +1052,7 @@ function GenerateContent() {
               <input
                 ref={hwpxFileRef}
                 type="file"
-                accept=".hwpx"
+                accept=".hwpx,.hwp"
                 onChange={handleHwpxSelect}
                 className="hidden"
               />
@@ -1082,14 +1079,14 @@ function GenerateContent() {
               ) : (
                 <div>
                   <p className="text-sm text-gray-300 font-medium">
-                    📤 변환한 HWPX 업로드
+                    📤 신청서 업로드 (.hwp / .hwpx)
                   </p>
                   <p className="text-[11px] text-gray-500 mt-1">
                     {pblancId
-                      ? "HWP로만 제공되는 신청서는 한컴오피스로 .hwpx 저장 후 여기에 올리세요"
-                      : "정부 공고 신청서 HWPX 파일을 직접 업로드 (드래그&드롭 또는 클릭)"}
+                      ? "공고 신청서(.hwp/.hwpx)를 여기에 올리면 AI가 표를 채워드립니다"
+                      : "정부 공고 신청서 .hwp/.hwpx 파일을 직접 업로드 (드래그&드롭 또는 클릭)"}
                   </p>
-                  <p className="text-[10px] text-gray-600 mt-1">클릭하거나 파일을 드래그하세요 · .hwpx 형식만 지원</p>
+                  <p className="text-[10px] text-gray-600 mt-1">클릭하거나 파일을 드래그하세요 · .hwp / .hwpx 지원</p>
                 </div>
               )}
             </div>
@@ -1140,11 +1137,11 @@ function GenerateContent() {
               >
                 전체 복사
               </button>
-              {((selectedAttachment && selectedAttachment.ext === "hwpx") || hwpxFile) && (
+              {((selectedAttachment && canAutoFill(selectedAttachment.ext)) || hwpxFile) && (
                 <button
                   onClick={handleFillOriginalForm}
                   disabled={fillingHwp}
-                  title="원본 양식(HWPX)에 AI가 답변을 다시 생성해 채웁니다"
+                  title="원본 양식(.hwp/.hwpx)에 AI가 답변을 다시 생성해 채웁니다"
                   className="text-xs px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25 border border-cyan-500/25 transition disabled:opacity-50"
                 >
                   {fillingHwp ? (
@@ -1157,7 +1154,7 @@ function GenerateContent() {
                   )}
                 </button>
               )}
-              {selectedAttachment && selectedAttachment.ext !== "hwpx" && (
+              {selectedAttachment && !canAutoFill(selectedAttachment.ext) && (
                 <a
                   href={selectedAttachment.downloadUrl}
                   target="_blank"
