@@ -159,34 +159,35 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
       {attachments.length > 0 && (
         <div className="space-y-1.5 rounded-xl p-3 bg-blue-50/50 border border-blue-100">
           <p className="text-[11px] text-gray-500">공고 첨부파일 {attachments.length}개 · .hwp/.hwpx 신청서를 클릭하면 AI가 채워줍니다</p>
-          {attachments.map((att, i) => {
+          {attachments.map((att) => {
             const fillable = canAutoFill(att.ext);
-            return (
-              <div key={i}
-                onClick={() => selectAttachment(att)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition ${
-                  fillable
-                    ? "bg-white border border-blue-200 hover:border-blue-400 cursor-pointer"
-                    : "bg-gray-50 border border-gray-200"
-                }`}>
-                <span className="text-base">
-                  {att.ext === "hwpx" ? "📄" : att.ext === "hwp" ? "📕" : att.ext === "pdf" ? "📑" : "📦"}
-                </span>
+            const icon = att.ext === "hwpx" ? "📄" : att.ext === "hwp" ? "📕" : att.ext === "pdf" ? "📑" : "📦";
+            const rowClass = "flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition w-full text-left";
+            const inner = (
+              <>
+                <span className="text-base">{icon}</span>
                 <span className="flex-1 truncate text-gray-700">{att.filename}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full border flex-shrink-0 bg-gray-50 text-gray-600 border-gray-200">
                   {KIND_LABEL[att.kind]}
                 </span>
-                {fillable ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex-shrink-0">
-                    클릭해 AI 채움
-                  </span>
-                ) : (
-                  <a href={att.downloadUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 flex-shrink-0 hover:bg-gray-200"
-                    title="파일을 그대로 내려받기">
-                    ↓ 원본
-                  </a>
-                )}
+              </>
+            );
+            return fillable ? (
+              <button key={att.downloadUrl} type="button" onClick={() => selectAttachment(att)}
+                className={`${rowClass} bg-white border border-blue-200 hover:border-blue-400 cursor-pointer`}>
+                {inner}
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 flex-shrink-0">
+                  클릭해 AI 채움
+                </span>
+              </button>
+            ) : (
+              <div key={att.downloadUrl} className={`${rowClass} bg-gray-50 border border-gray-200`}>
+                {inner}
+                <a href={att.downloadUrl} target="_blank" rel="noreferrer"
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 flex-shrink-0 hover:bg-gray-200"
+                  title="파일을 그대로 내려받기">
+                  ↓ 원본
+                </a>
               </div>
             );
           })}
