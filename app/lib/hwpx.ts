@@ -239,6 +239,8 @@ const parser = new XMLParser(PARSER_OPTIONS);
 const builder = new XMLBuilder(BUILDER_OPTIONS);
 
 export class HwpxDocument {
+  // FormDoc (lib/form-doc.ts) 만족용 — 포맷 판별자
+  readonly format = "hwpx" as const;
   private members = new Map<string, Uint8Array>();
   sections: SectionDoc[] = [];
 
