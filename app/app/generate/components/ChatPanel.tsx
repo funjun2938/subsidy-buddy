@@ -5,7 +5,7 @@ import type { ChatMessage } from "../hooks/useDocSession";
 import { SummaryBubble } from "./SummaryBubble";
 
 export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport }: {
-  structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean; bizInfo: string;
+  structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean;
   onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean; onExport: () => void;
 }) {
   const [input, setInput] = useState("");
