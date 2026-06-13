@@ -29,6 +29,12 @@ export interface FormTable {
 
 export interface FormDoc {
   readonly format: "hwp" | "hwpx";
+  /**
+   * 표 목록. **셀 객체의 동일성(identity)이 호출 간 안정적이어야 한다** —
+   * buildStructure(doc-structure.ts)가 findLabelTargets 결과의 셀과
+   * allTables() 셀을 객체 동일성으로 매칭해 fillable 판정을 한다.
+   * (어댑터는 fromBytes 시점에 셀 배열을 1회 생성해 그대로 반환할 것.)
+   */
   allTables(): Iterable<FormTable>;
   /** 변경분을 반영한 바이너리(원래 포맷 그대로) */
   toBytes(): Promise<Uint8Array>;
