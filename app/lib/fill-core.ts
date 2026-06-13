@@ -100,6 +100,34 @@ function pickTarget(table: FormTable, labelCell: FormCell): FormCell | null {
   return candidates[0].cell;
 }
 
+// ── 라벨→타깃셀 탐지 (구조 빌더와 fillForm 공유) ──────────────────────────────
+
+export interface LabelTarget {
+  labelCell: FormCell;
+  targetCell: FormCell;
+  label: string;
+  fieldKey: string | null;
+}
+
+export function findLabelTargets(doc: FormDoc): LabelTarget[] {
+  const resolver = new LabelResolver();
+  const out: LabelTarget[] = [];
+  const usedTargets = new WeakSet<FormCell>();
+  for (const table of doc.allTables()) {
+    for (const cell of table.cells) {
+      if (usedTargets.has(cell)) continue;
+      const text = cell.text;
+      if (!looksLikeLabel(text)) continue;
+      const fieldKey = resolver.resolve(text);
+      const target = pickTarget(table, cell);
+      if (!target || usedTargets.has(target)) continue;
+      usedTargets.add(target);
+      out.push({ labelCell: cell, targetCell: target, label: text, fieldKey });
+    }
+  }
+  return out;
+}
+
 // ── 메인 ──────────────────────────────────────────────────────────────────────
 
 export async function fillForm(
