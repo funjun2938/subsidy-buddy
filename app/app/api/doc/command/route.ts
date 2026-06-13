@@ -10,8 +10,12 @@ interface FillableCell { ref: string; label: string; value: string; }
 export async function POST(request: NextRequest) {
   let body: { fillable: FillableCell[]; valueMap: Record<string, string>; command: string; bizInfo?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "JSON 본문 필요" }, { status: 400 }); }
-  const { fillable, valueMap, command, bizInfo = "" } = body;
+  const { fillable, command, bizInfo = "" } = body;
   if (!command?.trim()) return Response.json({ error: "명령이 비어있습니다." }, { status: 400 });
+  if (!Array.isArray(fillable)) return Response.json({ error: "fillable 배열이 필요합니다." }, { status: 400 });
+  // valueMap 이 null/비객체로 와도 안전하게 빈 객체로 정규화 (미처리 500 방지)
+  const valueMap = (body.valueMap && typeof body.valueMap === "object" && !Array.isArray(body.valueMap))
+    ? body.valueMap : {};
 
   const prompt = buildCommandPrompt(fillable, valueMap, command, bizInfo);
   let text: string;
