@@ -2,28 +2,29 @@ import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
 import JSZip from "jszip";
-import { HwpxDocument } from "@/lib/hwpx";
-import { fillDocument, summarizeForPreview, type FillReport } from "@/lib/hwpx-filler";
+import { openFormDoc } from "@/lib/open-form-doc";
+import { fillForm, summarizeFormForPreview, type FillReport } from "@/lib/fill-core";
+import type { FormDoc } from "@/lib/form-doc";
 
-// LLM이 표 라벨을 보고 답변을 직접 만드는 통합 라우트.
+// LLM이 표 라벨을 보고 답변을 직접 만드는 통합 라우트. (.hwp / .hwpx 모두 지원)
 //
 // 흐름 (모두 Next.js 안에서 처리, 외부 사이드카 없음):
-//   1) 클라가 multipart로 hwpx 파일 + bizInfo + grantTitle 전달
+//   1) 클라가 multipart로 양식 파일(.hwp/.hwpx) + bizInfo + grantTitle 전달
 //      (공고 첨부는 클라가 먼저 /api/download-attachment edge 라우트로 받아서 multipart에 동봉)
-//   2) HWPX 파싱 → 표 라벨 후보 추출
+//   2) openFormDoc 으로 포맷 자동 판별·파싱 → 표 라벨 후보 추출 (포맷 무관)
 //   3) (라벨 + 사업 정보 + 지원사업명) → LLM(Gemini→Claude)에 답변 생성 요청
-//   4) HWPX 표 셀에 답변 주입 → 직렬화
-//   5) zip(filled.hwpx + report.json + preview.txt) 응답
+//   4) 표 셀에 답변 주입 → 직렬화 (HWPX: lib/hwpx, HWP: hwpilot 어댑터)
+//   5) zip(filled.<원래포맷> + report.json + preview.txt) 응답
 //
-// 이 라우트는 LLM SDK + jszip + lxml 동급의 fast-xml-parser를 쓰므로 nodejs runtime이 필요.
+// 이 라우트는 LLM SDK + jszip + fast-xml-parser + (HWP시) cfb/pako 를 쓰므로 nodejs runtime이 필요.
 // 첨부 다운로드 자체는 별도 edge 라우트(/api/download-attachment)가 ICN region에서 처리한다.
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
-  let hwpxBytes: Uint8Array;
-  let hwpxName: string;
+  let docBytes: Uint8Array;
+  let docName: string;
   let bizInfo = "";
   let grantTitle = "";
 
@@ -35,14 +36,12 @@ export async function POST(request: NextRequest) {
     if (!hwpx || typeof hwpx === "string") {
       return Response.json({ error: "hwpx 파일이 필요합니다." }, { status: 400 });
     }
-    hwpxBytes = new Uint8Array(await (hwpx as Blob).arrayBuffer());
-    hwpxName = (hwpx as File).name || "input.hwpx";
-    if (!hwpxName.toLowerCase().endsWith(".hwpx")) {
+    docBytes = new Uint8Array(await (hwpx as Blob).arrayBuffer());
+    docName = (hwpx as File).name || "input.hwpx";
+    const lower = docName.toLowerCase();
+    if (!lower.endsWith(".hwpx") && !lower.endsWith(".hwp")) {
       return Response.json(
-        {
-          error: "AI 자동 기입은 HWPX 파일만 가능합니다.",
-          hint: "HWP 파일은 한컴오피스에서 .hwpx로 저장 후 업로드하세요.",
-        },
+        { error: "지원하지 않는 형식입니다. .hwp 또는 .hwpx 파일을 올려주세요." },
         { status: 415 }
       );
     }
@@ -61,19 +60,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 1) HWPX 파싱
-  let doc: HwpxDocument;
+  // 1) 양식 파싱 (.hwp / .hwpx 자동 판별)
+  let doc: FormDoc;
   try {
-    doc = await HwpxDocument.fromBytes(hwpxBytes);
+    doc = await openFormDoc(docBytes);
   } catch (e) {
     return Response.json(
-      { error: "HWPX 파싱 실패", detail: e instanceof Error ? e.message : String(e) },
+      { error: "양식 파싱 실패", detail: e instanceof Error ? e.message : String(e) },
       { status: 400 }
     );
   }
 
   // 2) 표 라벨 후보 추출 (표 구조 유지 — LLM 프롬프트에서 표별 컨텍스트 제공용)
-  const preview = summarizeForPreview(hwpxName, doc);
+  const preview = summarizeFormForPreview(docName, doc);
   const labelSet = new Set<string>();
   const tableGroups: { tableIndex: number; rows: number; cols: number; labels: string[] }[] = [];
   for (const t of preview.tables) {
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
   // 4) 표 셀 채우기
   let report: FillReport;
   try {
-    report = await fillDocument(doc, aiAnswers);
+    report = await fillForm(doc, aiAnswers);
   } catch (e) {
     return Response.json(
       { error: "양식 채우기 실패", detail: e instanceof Error ? e.message : String(e) },
@@ -138,7 +137,7 @@ export async function POST(request: NextRequest) {
     filledBytes = await doc.toBytes();
   } catch (e) {
     return Response.json(
-      { error: "HWPX 직렬화 실패", detail: e instanceof Error ? e.message : String(e) },
+      { error: "양식 직렬화 실패", detail: e instanceof Error ? e.message : String(e) },
       { status: 500 }
     );
   }
@@ -146,13 +145,14 @@ export async function POST(request: NextRequest) {
   // 채워진 결과의 텍스트 미리보기 (다시 파싱해서 추출 — 라운드트립 검증 + UI 표시용)
   let previewText = "";
   try {
-    const reread = await HwpxDocument.fromBytes(filledBytes);
+    const reread = await openFormDoc(filledBytes);
     previewText = reread.toTextPreview();
   } catch {/* preview는 옵션 */}
 
-  // 5) zip 응답 (filled.hwpx + report.json + preview.txt)
+  // 5) zip 응답 (filled.<원래포맷> + report.json + preview.txt)
+  const ext = doc.format === "hwp" ? "hwp" : "hwpx";
   const outZip = new JSZip();
-  outZip.file("filled.hwpx", filledBytes);
+  outZip.file(`filled.${ext}`, filledBytes);
   outZip.file(
     "report.json",
     JSON.stringify({ ...report, ai_answers: aiAnswers, label_count: labels.length }, null, 2)
@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
   const headers = new Headers();
   headers.set("Content-Type", "application/zip");
   headers.set("Content-Disposition", `attachment; filename="filled.zip"`);
+  headers.set("X-Doc-Format", ext); // hwp | hwpx — 클라가 다운로드 파일명에 사용
   headers.set("X-Filled-Count", String(report.filled_count));
   headers.set("X-Ai-Labels", String(labels.length));
   headers.set("X-Ai-Answers", String(Object.keys(aiAnswers).length));
