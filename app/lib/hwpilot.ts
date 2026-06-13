@@ -11,6 +11,7 @@ export { Document, documentFromBytes } from "./vendor/hwpilot/sdk/document.js";
 export { detectFormat } from "./vendor/hwpilot/sdk/format-detector.js";
 export type { HwpFormat } from "./vendor/hwpilot/sdk/format-detector.js";
 export { validateHwpBuffer } from "./vendor/hwpilot/sdk/formats/hwp/validator.js";
+export { createHwp } from "./vendor/hwpilot/sdk/formats/hwp/creator.js"; // 빈 .hwp 생성 (테스트/양식 생성용)
 export type {
   HwpDocument,
   Section,

@@ -6,7 +6,8 @@
     "dev": "next dev --port 3100",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "bun test tests/"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
