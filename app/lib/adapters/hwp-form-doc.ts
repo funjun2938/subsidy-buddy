@@ -33,6 +33,8 @@ class HwpFormCell implements FormCell {
   get text(): string {
     return this._text;
   }
+  get row(): number { return this.r; }
+  get col(): number { return this.c; }
   setText(value: string): void {
     this._text = value;
     this.owner.enqueue(this.ref, value);
@@ -55,6 +57,12 @@ class HwpFormTable implements FormTable {
     for (const cell of cells) {
       if (cell.r < nrows && cell.c < ncols) this.grid[cell.r][cell.c] = cell;
     }
+  }
+
+  cellAt(row: number, col: number): FormCell | null {
+    return (row >= 0 && row < this.nrows && col >= 0 && col < this.ncols)
+      ? this.grid[row][col]
+      : null;
   }
 
   neighborRight(cell: FormCell): FormCell | null {

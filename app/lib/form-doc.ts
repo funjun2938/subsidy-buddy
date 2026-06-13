@@ -7,6 +7,10 @@
 export interface FormCell {
   /** 셀 안 텍스트(여러 텍스트 노드를 이어붙인 결과) */
   readonly text: string;
+  /** 행 인덱스 (0-based) */
+  readonly row: number;
+  /** 열 인덱스 (0-based) */
+  readonly col: number;
   /** 셀 텍스트를 새 값으로 교체 */
   setText(value: string): void;
 }
@@ -15,6 +19,8 @@ export interface FormTable {
   readonly nrows: number;
   readonly ncols: number;
   readonly cells: FormCell[];
+  /** (row, col) 위치의 셀 반환; 없으면 null */
+  cellAt(row: number, col: number): FormCell | null;
   /** 라벨 셀 오른쪽 인접 셀 */
   neighborRight(cell: FormCell): FormCell | null;
   /** 라벨 셀 아래 인접 셀 */
