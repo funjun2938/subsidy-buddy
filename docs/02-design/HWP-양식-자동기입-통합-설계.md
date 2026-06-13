@@ -158,6 +158,7 @@ hwpilot `Document`를 `FormDoc`로 감싼다.
 | 한컴뷰어 실측 미확인(Mac 한컴 부재) | 구조검증+개발자 e2e 의존. **GA 전 한컴 설치 PC에서 육안 1회 확인** 체크리스트화 |
 | export 시 파일 크기 변동(재압축) | round-trip+validate 통과로 내용 보존 확인. 회귀 테스트에 크기 아닌 셀값 기준 |
 | 병합셀(rowspan/colspan) 인접 계산 차이 | 우선 단순 그리드로 지원, 병합 양식은 unmatched로 리포트(기존도 동일 한계) |
+| **다중 텍스트런 셀 잔여 텍스트**(Step 4 발견) | hwpilot 의 HWP 셀 쓰기는 첫 런만 교체 → placeholder("   시   분~   시   분") 잔여가 남음. HWPX(hwpx.ts)는 잔여 비움. 신청서 값 셀은 보통 비어있어 영향 적으나, 필요 시 hwpilot writer 패치 또는 셀 클리어 전처리 검토 |
 | 업스트림 변경/방치 | MIT라 최악의 경우 vendoring 영구 동결 가능 |
 
 ---
