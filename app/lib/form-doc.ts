@@ -11,6 +11,10 @@ export interface FormCell {
   readonly row: number;
   /** 열 인덱스 (0-based) */
   readonly col: number;
+  /** 병합 행 수 (병합 없으면 1) */
+  readonly rowspan: number;
+  /** 병합 열 수 (병합 없으면 1) */
+  readonly colspan: number;
   /** 셀 텍스트를 새 값으로 교체 */
   setText(value: string): void;
 }

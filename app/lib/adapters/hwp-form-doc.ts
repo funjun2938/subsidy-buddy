@@ -35,6 +35,9 @@ class HwpFormCell implements FormCell {
   }
   get row(): number { return this.r; }
   get col(): number { return this.c; }
+  // hwpilot 그리드는 병합을 1×1로 평탄화하므로 항상 1
+  get rowspan(): number { return 1; }
+  get colspan(): number { return 1; }
   setText(value: string): void {
     this._text = value;
     this.owner.enqueue(this.ref, value);

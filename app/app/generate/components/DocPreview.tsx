@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { DocStructure, ValueMap } from "@/lib/doc-structure";
+import { buildPreviewRows } from "@/lib/preview-grid";
 
 export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
   structure: DocStructure; valueMap: ValueMap; lastChanged: string[];
@@ -21,11 +22,9 @@ export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
           {structure.tables.map((t) => (
             <table key={t.index} className="w-full border-collapse text-[12px] text-[#222] mb-4">
               <tbody>
-                {Array.from({ length: t.nrows }).map((_, r) => (
+                {buildPreviewRows(t).map((rowCells, r) => (
                   <tr key={r}>
-                    {Array.from({ length: t.ncols }).map((_, c) => {
-                      const cell = t.cells.find(x => x.row === r && x.col === c);
-                      if (!cell) return <td key={c} className="border border-[#cfd3da]" />;
+                    {rowCells.map((cell) => {
                       const val = valueMap[cell.ref];
                       const filled = !!val?.trim();
                       const isChanged = changedSet.has(cell.ref);
@@ -34,7 +33,9 @@ export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
                         : filled ? "bg-[#fffbe6]" : "bg-white";
                       const editingThis = editing === cell.ref;
                       return (
-                        <td key={c}
+                        <td key={cell.ref}
+                          rowSpan={cell.rowspan > 1 ? cell.rowspan : undefined}
+                          colSpan={cell.colspan > 1 ? cell.colspan : undefined}
                           className={`border border-[#cfd3da] px-2.5 py-2 align-top ${bg} ${cell.isFillable ? "cursor-text" : ""}`}
                           onClick={() => { if (cell.isFillable && !editingThis) { setEditing(cell.ref); setDraft(val || ""); } }}>
                           {editingThis ? (

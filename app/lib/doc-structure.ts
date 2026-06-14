@@ -3,6 +3,7 @@ import { findLabelTargets } from "./fill-core";
 
 export interface StructureCell {
   ref: string; row: number; col: number;
+  rowspan: number; colspan: number;
   label: string; isFillable: boolean; labelFor?: string;
 }
 export interface StructureTable { index: number; nrows: number; ncols: number; cells: StructureCell[]; }
@@ -25,6 +26,7 @@ export function buildStructure(doc: FormDoc): DocStructure {
     const cells: StructureCell[] = table.cells.map((c) => ({
       ref: cellRef(ti, c.row, c.col),
       row: c.row, col: c.col,
+      rowspan: c.rowspan, colspan: c.colspan,
       label: c.text,
       isFillable: targetInfo.has(c),
       labelFor: targetInfo.get(c),
