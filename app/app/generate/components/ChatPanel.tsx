@@ -1,27 +1,36 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DocStructure, ValueMap } from "@/lib/doc-structure";
 import type { ChatMessage } from "../hooks/useDocSession";
 import { SummaryBubble } from "./SummaryBubble";
 
-export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onShowPreview, tokenInfo }: {
+export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onExportHwpx, onShowPreview, tokenInfo }: {
   structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean;
-  onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean; onExport: () => void;
+  onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean;
+  onExport: () => void; onExportHwpx?: () => void;
   onShowPreview?: () => void;
   tokenInfo?: { isPro: boolean; percent: number } | null;
 }) {
   const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
   const submit = () => { if (input.trim() && !busy) { onSend(input.trim()); setInput(""); } };
+
+  // 새 메시지/응답이 오면 자동으로 맨 아래로 스크롤
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, busy]);
+
   return (
     <div className="w-full flex flex-col bg-[#f7f8fa] md:border-r border-[#e8eaee] min-h-0">
-      <div className="px-4 py-3 border-b border-[#e8eaee] font-bold text-[#1f2430] text-sm flex items-center justify-between">
-        <span className="flex items-center gap-2">
-          ✍️ AI 신청서 작성
+      <div className="px-4 py-3 border-b border-[#e8eaee] font-bold text-[#1f2430] text-sm flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="truncate">✍️ AI 신청서 작성</span>
           {tokenInfo && (
             tokenInfo.isPro ? (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 text-white">PRO ∞</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 text-white shrink-0">PRO ∞</span>
             ) : (
-              <span className="flex items-center gap-1.5" title={`무료 토큰 ${tokenInfo.percent}% 사용`}>
+              <span className="flex items-center gap-1.5 shrink-0" title={`무료 토큰 ${tokenInfo.percent}% 사용`}>
                 <span className="w-12 h-1.5 rounded-full bg-[#e3e6ec] overflow-hidden">
                   <span className="block h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 transition-all" style={{ width: `${tokenInfo.percent}%` }} />
                 </span>
@@ -30,12 +39,13 @@ export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo,
             )
           )}
         </span>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 shrink-0">
           <button onClick={onUndo} disabled={!canUndo} className="text-[11px] px-2 py-1 rounded bg-white border border-[#d6dae1] disabled:opacity-40">되돌리기</button>
-          <button onClick={onExport} className="text-[11px] px-2.5 py-1 rounded bg-[#2d6cf6] text-white font-semibold">한글 다운로드</button>
+          <button onClick={onExport} className="text-[11px] px-2 py-1 rounded bg-white border border-[#d6dae1] text-[#2d6cf6] font-semibold">한글</button>
+          {onExportHwpx && <button onClick={onExportHwpx} className="text-[11px] px-2.5 py-1 rounded bg-[#2d6cf6] text-white font-semibold">HWPX 저장</button>}
         </div>
       </div>
-      <div className="flex-1 p-3.5 flex flex-col gap-2.5 overflow-auto">
+      <div ref={scrollRef} className="flex-1 p-3.5 flex flex-col gap-2.5 overflow-auto">
         <SummaryBubble structure={structure} valueMap={valueMap} />
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user"

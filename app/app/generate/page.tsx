@@ -5,7 +5,7 @@ import { useDocTokens } from "@/lib/docTokens";
 import { StudioEntry } from "./components/StudioEntry";
 import { ChatPanel } from "./components/ChatPanel";
 import { DocPreview } from "./components/DocPreview";
-import { HwpPreview } from "./components/HwpPreview";
+import { HwpPreview, exportHwpxFromBytes } from "./components/HwpPreview";
 import { UpgradeGate } from "./components/UpgradeGate";
 
 export default function StudioPage() {
@@ -48,6 +48,25 @@ export default function StudioPage() {
     s.sendCommand(cmd, bizInfo, (used) => tokens.consume(used));
   };
 
+  // 채운 양식을 HWPX 로 다운로드 (현재 valueMap 적용 → rhwp 로 HWPX 변환)
+  const [hwpxBusy, setHwpxBusy] = useState(false);
+  const handleHwpxDownload = async () => {
+    if (hwpxBusy) return;
+    setHwpxBusy(true);
+    try {
+      const filled = (await s.exportBytes()) ?? docBytes;
+      if (!filled) return;
+      const hwpx = await exportHwpxFromBytes(filled);
+      const blob = new Blob([hwpx as BlobPart], { type: "application/octet-stream" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(s.file?.name || "신청서").replace(/\.hwpx?$/i, "")}_AI작성.hwpx`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch { /* 실패 시 기존 '한글' 다운로드 사용 */ }
+    finally { setHwpxBusy(false); }
+  };
+
   if (!s.structure) {
     return <StudioEntry onReady={(file, bi, grantTitle) => {
       const merged = grantTitle.trim() ? `지원사업명: ${grantTitle.trim()}\n${bi}` : bi;
@@ -76,7 +95,8 @@ export default function StudioPage() {
         <div className={`${mobileTab === "chat" ? "flex" : "hidden"} md:flex w-full md:w-[42%] md:shrink-0 min-h-0`}>
           <ChatPanel structure={s.structure} valueMap={s.valueMap} messages={s.messages} busy={s.busy}
             onSend={handleSend} onUndo={s.undo} canUndo={s.canUndo}
-            onExport={s.exportDoc} onShowPreview={() => setMobileTab("preview")}
+            onExport={s.exportDoc} onExportHwpx={handleHwpxDownload}
+            onShowPreview={() => setMobileTab("preview")}
             tokenInfo={tokens.mounted ? { isPro: tokens.isPro, percent: tokens.percent } : null} />
         </div>
         <div className={`${mobileTab === "preview" ? "flex" : "hidden"} md:flex flex-1 min-h-0 flex-col`}>

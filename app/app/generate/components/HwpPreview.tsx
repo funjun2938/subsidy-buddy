@@ -26,6 +26,17 @@ async function getRhwp() {
   return rhwpPromise;
 }
 
+// 채운 문서 바이트(.hwp/.hwpx)를 rhwp 로 열어 HWPX 로 변환/내보내기. (한컴에서 바로 열림)
+export async function exportHwpxFromBytes(bytes: Uint8Array): Promise<Uint8Array> {
+  const mod = await getRhwp();
+  const doc = new mod.HwpDocument(new Uint8Array(bytes));
+  try {
+    return doc.exportHwpx();
+  } finally {
+    doc.free();
+  }
+}
+
 // rhwp 가 만든 SVG 를 innerHTML 주입 전 방어적으로 살균 (이벤트 핸들러/script/javascript:)
 function sanitizeSvg(svg: string): string {
   return svg
