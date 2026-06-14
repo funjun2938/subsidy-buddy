@@ -85,7 +85,7 @@ export default function StudioPage() {
           </div>
           {previewMode === "fidelity" ? (
             (filledBytes ?? docBytes)
-              ? <HwpPreview bytes={(filledBytes ?? docBytes)!} onError={() => setPreviewMode("edit")} />
+              ? <HwpPreview bytes={(filledBytes ?? docBytes)!} />
               : <div className="flex-1 flex items-center justify-center text-xs text-[#9aa1ad]">양식 불러오는 중…</div>
           ) : (
             <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged}
