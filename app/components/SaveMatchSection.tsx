@@ -55,10 +55,10 @@ export default function SaveMatchSection({
       <div className="glass rounded-2xl p-5 mb-6 border border-cyan-500/20">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-white mb-0.5">
+            <p className="text-sm font-semibold text-[var(--foreground)] mb-0.5">
               💡 결과를 저장하고 다시 보고 싶으신가요?
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-[var(--muted)]">
               회원가입하면 사업자등록증 다시 안 올려도 돼요
             </p>
           </div>
@@ -77,10 +77,10 @@ export default function SaveMatchSection({
     <div className="glass rounded-2xl p-5 mb-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-white mb-0.5">
+          <p className="text-sm font-semibold text-[var(--foreground)] mb-0.5">
             💾 이 결과를 내 계정에 저장
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-[var(--muted)]">
             나중에 다시 와서 확인할 수 있어요
           </p>
         </div>
