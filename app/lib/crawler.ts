@@ -88,11 +88,12 @@ export async function fetchBizInfoGrants(): Promise<Grant[]> {
     const totalPages = Math.ceil(totalCount / 100);
     console.log(`[Crawler] Total: ${totalCount} grants, ${totalPages} pages`);
 
-    // 나머지 페이지 병렬 fetch (5개씩 배치)
+    // 나머지 페이지 병렬 fetch (10개씩 배치 — 전체 페이지를 모두 가져옴, 상한 없음)
     const remaining: BizInfoItem[] = [];
-    for (let batchStart = 2; batchStart <= totalPages; batchStart += 5) {
+    const BATCH = 10;
+    for (let batchStart = 2; batchStart <= totalPages; batchStart += BATCH) {
       const pageNums = Array.from(
-        { length: Math.min(5, totalPages - batchStart + 1) },
+        { length: Math.min(BATCH, totalPages - batchStart + 1) },
         (_, i) => batchStart + i
       );
       const results = await Promise.all(pageNums.map((p) => fetchPage(p)));

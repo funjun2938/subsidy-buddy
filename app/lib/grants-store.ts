@@ -1,44 +1,39 @@
+import { unstable_cache } from "next/cache";
 import { Grant } from "./types";
 import { grants as seedGrants } from "./seed-data";
 import { fetchBizInfoGrants } from "./crawler";
 
-let cachedGrants: Grant[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 60 * 60 * 1000; // 1시간
+// 기업마당 전체 공고 + 시드 병합 → 만료 필터 → 마감 임박순 정렬.
+// Next 데이터 캐시(unstable_cache)로 교차 인스턴스 캐싱 + SWR(1시간) →
+// 요청마다 전체를 다시 fetch하지 않아 지연 없이 즉시 응답.
+const loadAllGrants = unstable_cache(
+  async (): Promise<Grant[]> => {
+    const liveGrants = await fetchBizInfoGrants();
+
+    let merged: Grant[];
+    if (liveGrants.length > 0) {
+      // 라이브(기업마당) 우선 + 중복 아닌 시드 보강
+      const liveTitles = new Set(liveGrants.map((g) => g.title));
+      merged = [...liveGrants, ...seedGrants.filter((g) => !liveTitles.has(g.title))];
+    } else {
+      merged = seedGrants; // API 실패 시 시드 폴백
+    }
+
+    const now = Date.now();
+    return merged
+      .filter((g) => g.deadline === "상시" || new Date(g.deadline).getTime() >= now)
+      .sort((a, b) => {
+        if (a.deadline === "상시") return 1;
+        if (b.deadline === "상시") return -1;
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      });
+  },
+  ["all-grants-v1"],
+  { revalidate: 3600, tags: ["grants"] }
+);
 
 export async function getAllGrants(): Promise<Grant[]> {
-  const now = Date.now();
-  if (cachedGrants && now - cacheTimestamp < CACHE_TTL) {
-    return cachedGrants;
-  }
-
-  // 기업마당 API에서 실제 데이터 가져오기
-  const liveGrants = await fetchBizInfoGrants();
-
-  if (liveGrants.length > 0) {
-    // 실제 API 데이터 + 시드 데이터 합치기 (중복 제거)
-    const liveIds = new Set(liveGrants.map((g) => g.title));
-    const uniqueSeeds = seedGrants.filter((g) => !liveIds.has(g.title));
-    cachedGrants = [...liveGrants, ...uniqueSeeds];
-  } else {
-    // API 실패 시 시드 데이터만 사용
-    cachedGrants = seedGrants;
-  }
-
-  // 마감일 지난 것 필터 + 마감 임박순 정렬
-  cachedGrants = cachedGrants
-    .filter((g) => {
-      if (g.deadline === "상시") return true;
-      return new Date(g.deadline) >= new Date();
-    })
-    .sort((a, b) => {
-      if (a.deadline === "상시") return 1;
-      if (b.deadline === "상시") return -1;
-      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-    });
-
-  cacheTimestamp = now;
-  return cachedGrants;
+  return loadAllGrants();
 }
 
 export function findGrantById(grants: Grant[], id: string): Grant | undefined {
