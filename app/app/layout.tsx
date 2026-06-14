@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="ko" className={`${geist.variable} h-full antialiased scroll-smooth`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)] font-[family-name:var(--font-geist)]">
         <ThemeProvider>
           {/* PRO 배너(40px) 공간 확보 */}
