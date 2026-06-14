@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDocSession } from "./hooks/useDocSession";
 import { useDocTokens } from "@/lib/docTokens";
 import { StudioEntry } from "./components/StudioEntry";
@@ -18,7 +18,6 @@ export default function StudioPage() {
   // 미리보기 모드: 원문(rhwp 고충실 렌더) / 편집(칸 채우기 표)
   const [previewMode, setPreviewMode] = useState<"fidelity" | "edit">("fidelity");
   const [docBytes, setDocBytes] = useState<Uint8Array | null>(null);     // 원본 양식 바이트
-  const [filledBytes, setFilledBytes] = useState<Uint8Array | null>(null); // 값 반영 바이트
   const [gateOpen, setGateOpen] = useState(false);
 
   // 원본 양식 바이트 로드
@@ -29,19 +28,19 @@ export default function StudioPage() {
     return () => { cancelled = true; };
   }, [s.file]);
 
-  // 값 반영: 원문 미리보기 모드 + 채운 값이 있으면, 편집 후 디바운스로 export 바이트 재렌더
-  const valueMapKey = JSON.stringify(s.valueMap);
-  useEffect(() => {
-    if (previewMode !== "fidelity") return;
-    if (s.filledRefs.size === 0) { setFilledBytes(null); return; } // 채운 값 없으면 원본 렌더
-    let cancelled = false;
-    const t = setTimeout(async () => {
-      const bytes = await s.exportBytes();
-      if (!cancelled && bytes) setFilledBytes(bytes);
-    }, 800);
-    return () => { cancelled = true; clearTimeout(t); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewMode, valueMapKey, s.filledRefs.size]);
+  // 원문 미리보기용 라벨→값 쌍. rhwp 가 렌더 직전 자기 문서에 직접 써넣어
+  // 칸편집 값과 항상 일치하게 한다(hwpilot export 라운드트립 제거 → 500 폴백 버그 해소).
+  const fills = useMemo(() => {
+    if (!s.structure) return [];
+    const out: { label: string; value: string }[] = [];
+    for (const t of s.structure.tables) for (const c of t.cells) {
+      if (!c.isFillable) continue;
+      const value = s.valueMap[c.ref];
+      if (!value || !value.trim()) continue;
+      out.push({ label: c.labelFor || c.label, value });
+    }
+    return out;
+  }, [s.structure, s.valueMap]);
 
   // AI 생성/수정 명령 = 실제 사용 토큰만큼 무료 예산에서 차감. 소진 시 업그레이드 게이트.
   const handleSend = (cmd: string) => {
@@ -49,15 +48,13 @@ export default function StudioPage() {
     s.sendCommand(cmd, bizInfo, (used) => tokens.consume(used));
   };
 
-  // 채운 양식을 HWPX 로 다운로드 (현재 valueMap 적용 → rhwp 로 HWPX 변환)
+  // 채운 양식을 HWPX 로 다운로드 (원본 + fills → rhwp 가 직접 채워 HWPX 내보내기)
   const [hwpxBusy, setHwpxBusy] = useState(false);
   const handleHwpxDownload = async () => {
-    if (hwpxBusy) return;
+    if (hwpxBusy || !docBytes) return;
     setHwpxBusy(true);
     try {
-      const filled = (await s.exportBytes()) ?? docBytes;
-      if (!filled) return;
-      const hwpx = await exportHwpxFromBytes(filled);
+      const hwpx = await exportHwpxFromBytes(docBytes, fills);
       const blob = new Blob([hwpx as BlobPart], { type: "application/octet-stream" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -108,8 +105,8 @@ export default function StudioPage() {
             <button onClick={() => setPreviewMode("edit")} className={tabCls(previewMode === "edit")}>✏️ 칸 편집</button>
           </div>
           {previewMode === "fidelity" ? (
-            (filledBytes ?? docBytes)
-              ? <HwpPreview bytes={(filledBytes ?? docBytes)!} />
+            docBytes
+              ? <HwpPreview bytes={docBytes} fills={fills} />
               : <div className="flex-1 flex items-center justify-center text-xs text-[#9aa1ad]">양식 불러오는 중…</div>
           ) : (
             <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { applyFillsToRhwp, type RhwpFill } from "@/lib/rhwp-fill";
 
 // rhwp(@rhwp/core) WASM 로 .hwp/.hwpx 를 실제 한글문서 모습 그대로 SVG 렌더.
 // WASM 은 1회만 init (모듈 싱글톤). 클라이언트 전용.
@@ -26,11 +27,16 @@ async function getRhwp() {
   return rhwpPromise;
 }
 
-// 채운 문서 바이트(.hwp/.hwpx)를 rhwp 로 열어 HWPX 로 변환/내보내기. (한컴에서 바로 열림)
-export async function exportHwpxFromBytes(bytes: Uint8Array): Promise<Uint8Array> {
+// 원본 양식 바이트(.hwp/.hwpx)를 rhwp 로 열어 fills(라벨→값)를 직접 써넣고
+// HWPX 로 내보낸다. 편집·렌더와 동일 엔진이라 미리보기와 결과물이 일치하고,
+// hwpilot export 가 throw 하는 양식에서도 동작한다. (한컴에서 바로 열림)
+export async function exportHwpxFromBytes(bytes: Uint8Array, fills?: RhwpFill[]): Promise<Uint8Array> {
   const mod = await getRhwp();
   const doc = new mod.HwpDocument(new Uint8Array(bytes));
   try {
+    if (fills && fills.length) {
+      try { applyFillsToRhwp(doc, fills); } catch { /* 채우기 실패해도 원본 HWPX 는 내보냄 */ }
+    }
     return doc.exportHwpx();
   } finally {
     doc.free();
@@ -46,10 +52,14 @@ function sanitizeSvg(svg: string): string {
     .replace(/javascript:/gi, "");
 }
 
-export function HwpPreview({ bytes }: { bytes: Uint8Array }) {
+// fills(라벨→값)를 rhwp 가 직접 써넣고 렌더 → 렌더 엔진과 편집 엔진이 동일해 값이 항상 반영됨.
+export function HwpPreview({ bytes, fills }: { bytes: Uint8Array; fills?: RhwpFill[] }) {
   const [pages, setPages] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const reqId = useRef(0);
+
+  // fills 는 배열 참조가 매 렌더 바뀌므로 내용 기준으로 의존성 안정화
+  const fillsKey = JSON.stringify(fills ?? []);
 
   useEffect(() => {
     const id = ++reqId.current;
@@ -61,6 +71,10 @@ export function HwpPreview({ bytes }: { bytes: Uint8Array }) {
         // bytes 복사본 전달(detached/shared 회피)
         const doc = new mod.HwpDocument(new Uint8Array(bytes));
         try {
+          // 같은 rhwp 문서에 값을 직접 채운 뒤 렌더 → 미리보기가 칸편집 값과 일치
+          if (fills && fills.length) {
+            try { applyFillsToRhwp(doc, fills); } catch { /* 채우기 실패해도 원본은 렌더 */ }
+          }
           const n = Math.max(1, doc.pageCount());
           const svgs: string[] = [];
           for (let i = 0; i < n; i++) svgs.push(sanitizeSvg(doc.renderPageSvg(i)));
@@ -72,7 +86,8 @@ export function HwpPreview({ bytes }: { bytes: Uint8Array }) {
         if (id === reqId.current) setError(e instanceof Error ? e.message : String(e));
       }
     })();
-  }, [bytes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bytes, fillsKey]);
 
   if (error) {
     return (

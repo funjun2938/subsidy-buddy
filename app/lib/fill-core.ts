@@ -16,7 +16,7 @@ export interface FillReport {
 
 // ── 라벨 정규화 + 매칭 ───────────────────────────────────────────────────────
 
-function normalize(s: string): string {
+export function normalize(s: string): string {
   return s.replace(/[\s:：·\-_,.()\[\]/]+/g, "").toLowerCase();
 }
 

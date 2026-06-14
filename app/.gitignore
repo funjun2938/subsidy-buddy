@@ -44,3 +44,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 rhwp_bg.wasm
+tests/fixtures/
