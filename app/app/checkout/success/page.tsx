@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { activatePro } from "@/lib/docTokens";
 
 type SearchParams = Promise<{
   paymentKey?: string;
@@ -58,6 +59,7 @@ export default function SuccessPage({
         }
         setState("success");
         setResult(data);
+        activatePro(); // 결제 완료 → AI 문서생성 PRO 활성화(무제한)
       })
       .catch(() => {
         setState("error");

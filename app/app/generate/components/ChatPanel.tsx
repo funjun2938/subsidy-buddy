@@ -4,17 +4,29 @@ import type { DocStructure, ValueMap } from "@/lib/doc-structure";
 import type { ChatMessage } from "../hooks/useDocSession";
 import { SummaryBubble } from "./SummaryBubble";
 
-export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onShowPreview }: {
+export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onShowPreview, tokenInfo }: {
   structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean;
   onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean; onExport: () => void;
   onShowPreview?: () => void;
+  tokenInfo?: { isPro: boolean; remaining: number; limit: number } | null;
 }) {
   const [input, setInput] = useState("");
   const submit = () => { if (input.trim() && !busy) { onSend(input.trim()); setInput(""); } };
   return (
     <div className="w-full flex flex-col bg-[#f7f8fa] md:border-r border-[#e8eaee] min-h-0">
       <div className="px-4 py-3 border-b border-[#e8eaee] font-bold text-[#1f2430] text-sm flex items-center justify-between">
-        <span>✍️ AI 신청서 작성</span>
+        <span className="flex items-center gap-2">
+          ✍️ AI 신청서 작성
+          {tokenInfo && (
+            tokenInfo.isPro ? (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 text-white">PRO ∞</span>
+            ) : (
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${tokenInfo.remaining > 0 ? "text-[#2d6cf6] border-[#bcd0fb] bg-[#eef3ff]" : "text-[#c0392b] border-[#f3c4bd] bg-[#fdeeec]"}`}>
+                무료 {tokenInfo.remaining}/{tokenInfo.limit}
+              </span>
+            )
+          )}
+        </span>
         <div className="flex gap-1.5">
           <button onClick={onUndo} disabled={!canUndo} className="text-[11px] px-2 py-1 rounded bg-white border border-[#d6dae1] disabled:opacity-40">되돌리기</button>
           <button onClick={onExport} className="text-[11px] px-2.5 py-1 rounded bg-[#2d6cf6] text-white font-semibold">한글 다운로드</button>
