@@ -73,9 +73,10 @@ export function HwpPreview({ bytes, onError }: { bytes: Uint8Array; onError?: ()
 
   return (
     <div className="flex-1 overflow-auto bg-[#5b5f66] p-3 md:p-6">
-      <div className="mx-auto flex flex-col items-center gap-4" style={{ width: "fit-content" }}>
+      <div className="mx-auto flex flex-col items-center gap-4 max-w-3xl">
         {pages.map((svg, i) => (
-          <div key={i} className="bg-white shadow-xl rounded-sm overflow-hidden"
+          <div key={i}
+            className="bg-white shadow-xl rounded-sm overflow-hidden w-full [&_svg]:block [&_svg]:w-full [&_svg]:h-auto"
             dangerouslySetInnerHTML={{ __html: svg }} />
         ))}
       </div>

@@ -68,6 +68,15 @@ export function useDocSession() {
   const editCell = useCallback((ref: string, value: string) => applyChanges([{ ref, value }]), [applyChanges]);
   const undo = useCallback(() => setHistory(h => { if (!h.length) return h; setValueMap(h[h.length - 1]); return h.slice(0, -1); }), []);
 
+  // 현재 valueMap 을 적용한 문서 바이트 반환 (다운로드 없이) — 고충실 미리보기 재렌더용
+  const exportBytes = useCallback(async (): Promise<Uint8Array | null> => {
+    if (!file) return null;
+    const fd = new FormData(); fd.append("file", file); fd.append("valueMap", JSON.stringify(valueMap));
+    const res = await fetch("/api/doc/export", { method: "POST", body: fd });
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  }, [file, valueMap]);
+
   const exportDoc = useCallback(async () => {
     if (!file) return; setBusy(true);
     try {
@@ -84,5 +93,5 @@ export function useDocSession() {
     finally { setBusy(false); }
   }, [file, valueMap]);
 
-  return { file, structure, valueMap, messages, busy, lastChanged, filledRefs, openFile, sendCommand, editCell, undo, exportDoc, canUndo: history.length > 0 };
+  return { file, structure, valueMap, messages, busy, lastChanged, filledRefs, openFile, sendCommand, editCell, undo, exportDoc, exportBytes, canUndo: history.length > 0 };
 }

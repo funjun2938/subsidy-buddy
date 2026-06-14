@@ -16,16 +16,31 @@ export default function StudioPage() {
   const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
   // 미리보기 모드: 원문(rhwp 고충실 렌더) / 편집(칸 채우기 표)
   const [previewMode, setPreviewMode] = useState<"fidelity" | "edit">("fidelity");
-  const [docBytes, setDocBytes] = useState<Uint8Array | null>(null);
+  const [docBytes, setDocBytes] = useState<Uint8Array | null>(null);     // 원본 양식 바이트
+  const [filledBytes, setFilledBytes] = useState<Uint8Array | null>(null); // 값 반영 바이트
   const [gateOpen, setGateOpen] = useState(false);
 
-  // 원본 양식 바이트 로드 (원문 미리보기용). 값 반영 렌더는 후속(G003)에서 export 바이트로 교체.
+  // 원본 양식 바이트 로드
   useEffect(() => {
     if (!s.file) { setDocBytes(null); return; }
     let cancelled = false;
     s.file.arrayBuffer().then((b) => { if (!cancelled) setDocBytes(new Uint8Array(b)); }).catch(() => {});
     return () => { cancelled = true; };
   }, [s.file]);
+
+  // 값 반영: 원문 미리보기 모드 + 채운 값이 있으면, 편집 후 디바운스로 export 바이트 재렌더
+  const valueMapKey = JSON.stringify(s.valueMap);
+  useEffect(() => {
+    if (previewMode !== "fidelity") return;
+    if (s.filledRefs.size === 0) { setFilledBytes(null); return; } // 채운 값 없으면 원본 렌더
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const bytes = await s.exportBytes();
+      if (!cancelled && bytes) setFilledBytes(bytes);
+    }, 800);
+    return () => { cancelled = true; clearTimeout(t); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewMode, valueMapKey, s.filledRefs.size]);
 
   // AI 생성/수정 명령 = 실제 사용 토큰만큼 무료 예산에서 차감. 소진 시 업그레이드 게이트.
   const handleSend = (cmd: string) => {
@@ -69,8 +84,8 @@ export default function StudioPage() {
             <button onClick={() => setPreviewMode("edit")} className={tabCls(previewMode === "edit")}>✏️ 칸 편집</button>
           </div>
           {previewMode === "fidelity" ? (
-            docBytes
-              ? <HwpPreview bytes={docBytes} onError={() => setPreviewMode("edit")} />
+            (filledBytes ?? docBytes)
+              ? <HwpPreview bytes={(filledBytes ?? docBytes)!} onError={() => setPreviewMode("edit")} />
               : <div className="flex-1 flex items-center justify-center text-xs text-[#9aa1ad]">양식 불러오는 중…</div>
           ) : (
             <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged}
