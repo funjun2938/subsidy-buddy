@@ -98,6 +98,47 @@ select option { background: var(--card-bg); color: var(--foreground); }
 }
 .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
 
+/* ── 진입 모션: 은은한 fade-up (1회) ── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal { opacity: 0; animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; opacity: 1; }
+}
+
+/* ── 배경 글로우 천천히 떠다니기 ── */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(28px, -22px) scale(1.1); }
+}
+.drift      { animation: drift 16s ease-in-out infinite; }
+.drift-slow { animation: drift 22s ease-in-out infinite; }
+
+/* ── 그라데이션 보더 카드 (modern SaaS) ── */
+.gradient-border {
+  position: relative;
+  border-radius: 1rem;
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(6,182,212,0.5), rgba(139,92,246,0.5) 50%, rgba(236,72,153,0.45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── 가는 그라데이션 구분선 ── */
+.hr-gradient { height: 1px; background: linear-gradient(90deg, transparent, var(--surface-border), transparent); }
+
 /* Toss 결제 위젯 */
 .toss-widget-frame {
   background: #cfd6e0;
