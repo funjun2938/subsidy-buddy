@@ -1,15 +1,27 @@
 "use client";
 import { useState } from "react";
 import { useDocSession } from "./hooks/useDocSession";
+import { useDocTokens } from "@/lib/docTokens";
 import { StudioEntry } from "./components/StudioEntry";
 import { ChatPanel } from "./components/ChatPanel";
 import { DocPreview } from "./components/DocPreview";
+import { UpgradeGate } from "./components/UpgradeGate";
 
 export default function StudioPage() {
   const s = useDocSession();
+  const tokens = useDocTokens();
   const [bizInfo, setBizInfo] = useState("");
   // 모바일에선 작성/미리보기를 한 화면에 둘 수 없어 탭으로 전환한다.
   const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
+  const [gateOpen, setGateOpen] = useState(false);
+
+  // AI 생성/수정 명령 = 토큰 1개 소진. 소진 시 업그레이드 게이트 노출.
+  const handleSend = (cmd: string) => {
+    if (!tokens.canUse) { setGateOpen(true); return; }
+    tokens.consume();
+    s.sendCommand(cmd, bizInfo);
+  };
+
   if (!s.structure) {
     return <StudioEntry onReady={(file, bi, grantTitle) => {
       // grantTitle 을 사업 정보 맨 앞에 접어 넣어 명령 LLM 이 어떤 지원사업인지 알게 한다.
@@ -34,13 +46,16 @@ export default function StudioPage() {
       <div className="flex-1 flex min-h-0">
         <div className={`${mobileTab === "chat" ? "flex" : "hidden"} md:flex w-full md:w-[42%] md:shrink-0 min-h-0`}>
           <ChatPanel structure={s.structure} valueMap={s.valueMap} messages={s.messages} busy={s.busy}
-            onSend={(cmd) => s.sendCommand(cmd, bizInfo)} onUndo={s.undo} canUndo={s.canUndo}
-            onExport={s.exportDoc} onShowPreview={() => setMobileTab("preview")} />
+            onSend={handleSend} onUndo={s.undo} canUndo={s.canUndo}
+            onExport={s.exportDoc} onShowPreview={() => setMobileTab("preview")}
+            tokenInfo={tokens.mounted ? { isPro: tokens.isPro, remaining: tokens.remaining, limit: tokens.limit } : null} />
         </div>
         <div className={`${mobileTab === "preview" ? "flex" : "hidden"} md:flex flex-1 min-h-0`}>
           <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged} onEditCell={s.editCell} />
         </div>
       </div>
+
+      <UpgradeGate open={gateOpen} onClose={() => setGateOpen(false)} />
     </div>
   );
 }

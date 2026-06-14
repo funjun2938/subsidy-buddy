@@ -89,7 +89,7 @@ export default function Home() {
             </div>
             <h3 className="font-bold mb-2 text-[var(--foreground)]">AI 신청서 생성</h3>
             <p className="text-sm text-[var(--muted)] leading-relaxed mb-3">사업계획서 초안 작성 + 공고 원본 <b>.hwp/.hwpx</b> 양식에 AI가 셀 단위로 자동 기입까지.</p>
-            <span className="text-xs text-violet-500 font-semibold">건당 29,900원</span>
+            <span className="text-xs text-violet-500 font-semibold">하루 3건 무료 · 이후 PRO</span>
           </Link>
         </div>
       </section>
