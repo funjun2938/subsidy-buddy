@@ -1,7 +1,7 @@
 // fill-core 의 포맷 무관 로직 단위 테스트 (인메모리 mock FormDoc 사용).
 // 실행: bun test tests/
 import { describe, expect, test } from "bun:test";
-import { fillForm, summarizeFormForPreview } from "../lib/fill-core";
+import { fillForm, summarizeFormForPreview, findRowGroup } from "../lib/fill-core";
 import type { FormCell, FormDoc, FormTable } from "../lib/form-doc";
 
 // ── 인메모리 mock ──────────────────────────────────────────────────────────────
@@ -11,6 +11,10 @@ class MockCell implements FormCell {
     this._text = text;
   }
   get text() { return this._text; }
+  get row() { return this.r; }
+  get col() { return this.c; }
+  get rowspan() { return 1; }
+  get colspan() { return 1; }
   setText(v: string) { this._text = v; }
 }
 
@@ -32,6 +36,11 @@ class MockTable implements FormTable {
         this.grid[r][c] = cell;
       }),
     );
+  }
+  cellAt(row: number, col: number): FormCell | null {
+    return (row >= 0 && row < this.nrows && col >= 0 && col < this.ncols)
+      ? this.grid[row][col]
+      : null;
   }
   neighborRight(cell: FormCell): FormCell | null {
     const m = cell as MockCell;
@@ -130,6 +139,34 @@ describe("summarizeFormForPreview", () => {
     expect(summary.table_count).toBe(1);
     expect(summary.tables[0].label_candidates).toContain("기업명");
     expect(summary.tables[0].label_candidates).toContain("대표자");
+  });
+});
+
+describe("findRowGroup — 중복 라벨 행-그룹 헤더 탐지", () => {
+  test("같은 행 왼쪽 그룹 헤더를 찾는다", () => {
+    const t = new MockTable([["신청인", "성 명", "", "주민번호", ""]]);
+    const seongmyung = t.cells.find((c) => c.text === "성 명")!;
+    // 형제(중복) 라벨 없음 → 왼쪽 첫 비어있지 않은 셀
+    expect(findRowGroup(t, seongmyung)).toBe("신청인");
+  });
+
+  test("최좌측 라벨은 위 행의 rowspan 그룹 헤더로 walk-up 한다", () => {
+    // 실제 hwp 평탄화: 그룹 헤더는 그룹 첫 행에만, 덮인 행엔 그 열 셀이 없음.
+    // 여기선 r1 의 '주소' 가 그 행 최좌측(왼쪽 비어있음) → 위로 올라가 r0c0 '신고인'.
+    const t = new MockTable([
+      ["신고인", "성 명", "", "주민번호", ""],
+      ["", "주소", "", "", ""],
+    ]);
+    const juso = t.cells.find((c) => c.text === "주소")!;
+    expect(findRowGroup(t, juso)).toBe("신고인");
+  });
+
+  test("형제(중복) 필드 라벨은 건너뛰고 그룹 헤더를 잡는다", () => {
+    // '주민번호' 왼쪽엔 '성 명'(중복 라벨)이 있지만, skipNorms 로 건너뛰고 '신청인' 을 잡는다.
+    const t = new MockTable([["신청인", "성 명", "", "주민번호", ""]]);
+    const juminNo = t.cells.find((c) => c.text === "주민번호")!;
+    const skip = new Set(["성명"]); // normalize("성 명") === "성명"
+    expect(findRowGroup(t, juminNo, skip)).toBe("신청인");
   });
 });
 

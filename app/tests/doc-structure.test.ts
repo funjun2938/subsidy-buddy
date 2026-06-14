@@ -29,6 +29,63 @@ describe("buildStructure", () => {
   });
 });
 
+describe("buildStructure — 중복 라벨 그룹 구분 (신청인/배우자)", () => {
+  // 신청인/배우자 그룹에 "성 명"·"주민번호" 가 반복되는 표.
+  // 그룹 헤더(신청인/배우자)는 각 그룹 첫 행 col0, 값칸은 라벨 우측.
+  let dupBytes: Uint8Array;
+  beforeAll(async () => {
+    const blank = await createHwp();
+    const doc = await documentFromBytes(blank);
+    await doc.addTable("s0", 4, 5, {
+      data: [
+        ["신청인", "성 명", "", "주민번호", ""],
+        ["", "전화번호", "", "주소", ""],
+        ["배우자", "성 명", "", "주민번호", ""],
+        ["", "전화번호", "", "주소", ""],
+      ],
+    });
+    dupBytes = await doc.export();
+  });
+
+  test("두 '성 명' fillable 이 group(신청인/배우자)으로 구분된다", async () => {
+    const doc = await openFormDoc(dupBytes);
+    const s = buildStructure(doc);
+    const seongmyung = s.tables[0].cells.filter(
+      (c) => c.isFillable && (c.labelFor || "").replace(/\s/g, "") === "성명",
+    );
+    expect(seongmyung.length).toBe(2);
+    const groups = seongmyung.map((c) => c.group).sort();
+    expect(groups).toEqual(["배우자", "신청인"]);
+  });
+
+  test("유일한 그룹 헤더(신청인)에는 group 노이즈를 붙이지 않는다", async () => {
+    const doc = await openFormDoc(dupBytes);
+    const s = buildStructure(doc);
+    // 신청인 셀 자체는(fillable 이어도) 중복 라벨이 아니므로 group 없음
+    const sincheonginCell = s.tables[0].cells.find((c) => c.label === "신청인");
+    expect(sincheonginCell?.group).toBeUndefined();
+  });
+
+  test("신청인 성명 칸만 채우면 신청인 셀에 값이 들어간다(배우자 아님)", async () => {
+    const doc0 = await openFormDoc(dupBytes);
+    const s = buildStructure(doc0);
+    const sincheonginName = s.tables[0].cells.find(
+      (c) => c.isFillable && (c.labelFor || "").replace(/\s/g, "") === "성명" && c.group === "신청인",
+    );
+    expect(sincheonginName).toBeDefined();
+    const out = await applyValues(await openFormDoc(dupBytes), { [sincheonginName!.ref]: "김희준" });
+    const re = await openFormDoc(out);
+    // 김희준 이 들어간 셀의 ref 가 신청인 성명 ref 와 같아야 함
+    const hits: string[] = [];
+    let ti = 0;
+    for (const t of re.allTables()) {
+      for (const c of t.cells) if (c.text.includes("김희준")) hits.push(`t${ti}.r${c.row}.c${c.col}`);
+      ti++;
+    }
+    expect(hits).toEqual([sincheonginName!.ref]);
+  });
+});
+
 describe("applyValues", () => {
   test("ref별 값 주입 후 round-trip 보존", async () => {
     const doc = await openFormDoc(hwpBytes);
