@@ -39,9 +39,9 @@ export default function NotFound() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
-                { href: "/", label: "AI 맞춤 매칭", desc: "지원금 찾기" },
+                { href: "/match", label: "공고 찾기", desc: "AI 맞춤 매칭" },
                 { href: "/generate", label: "AI 신청서 생성", desc: "사업계획서 작성" },
-                { href: "/experts", label: "전문가 매칭", desc: "전문가 연결" },
+                { href: "/faq", label: "자주 묻는 질문", desc: "이용 안내" },
                 { href: "/pricing", label: "요금제", desc: "플랜 비교" },
               ].map((item) => (
                 <Link
