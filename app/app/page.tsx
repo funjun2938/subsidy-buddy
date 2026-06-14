@@ -15,48 +15,46 @@ export default function Home() {
           <div className="absolute bottom-[-10%] left-[40%] w-[300px] h-[300px] bg-pink-500/5 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-5 pt-10 sm:pt-20 pb-8 sm:pb-10 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass text-[11px] sm:text-xs text-[var(--muted)] mb-5 sm:mb-7">
+        <div className="relative max-w-3xl mx-auto px-5 pt-12 sm:pt-24 pb-10 sm:pb-14 text-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass text-[11px] sm:text-xs text-[var(--muted)] mb-5 sm:mb-6">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-ring" />
-            매칭부터 신청서 작성까지, AI 원스톱
+            AI 정부지원금 어시스턴트
           </div>
 
-          <h1 className="text-[26px] sm:text-5xl font-black tracking-tight leading-[1.25] sm:leading-[1.1] mb-4 sm:mb-6 text-[var(--foreground)]">
-            정부 지원금, 찾기부터{" "}
-            <span className="gradient-text">신청서 작성</span>
+          <h1 className="text-[30px] sm:text-[58px] font-black tracking-[-0.02em] leading-[1.12] mb-4 sm:mb-5 text-[var(--foreground)]">
+            지원금 찾고,{" "}
+            <span className="gradient-text">신청서까지</span>
             <br />
-            까지 AI가 다 해드립니다
+            AI가 한 번에
           </h1>
 
-          <p className="text-[13px] sm:text-base text-[var(--muted)] max-w-xl mx-auto mb-7 sm:mb-9 leading-relaxed">
-            사업자등록증 한 장이면 끝. 딱 맞는 지원사업을 찾고,
-            <br className="hidden sm:block" />
-            공고 양식에 신청서까지 AI가 자동으로 채워드립니다.
+          <p className="text-sm sm:text-lg text-[var(--muted)] max-w-md mx-auto mb-8 sm:mb-9 leading-relaxed">
+            사업자등록증 한 장이면 30초 만에 끝.
           </p>
 
           {/* Primary CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center gap-2.5 sm:gap-3 mb-10 sm:mb-14">
+          <div className="flex flex-col sm:flex-row justify-center gap-2.5 mb-9 sm:mb-11">
             <Link href="#match"
-              className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base text-white bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 transition shadow-lg shadow-cyan-500/25">
-              🎯 내 지원금 찾기 <span className="opacity-80 font-medium">· 무료</span>
+              className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-full font-bold text-sm sm:text-base text-white bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 transition shadow-lg shadow-violet-500/25">
+              내 지원금 찾기
             </Link>
             <Link href="/generate"
-              className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base glass glass-hover text-[var(--foreground)] transition">
-              📝 AI 신청서 만들기
+              className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-full font-bold text-sm sm:text-base glass glass-hover text-[var(--foreground)] transition">
+              AI 신청서 만들기 →
             </Link>
           </div>
 
-          {/* Stats */}
-          <div className="flex justify-center gap-8 sm:gap-16">
+          {/* Stats — compact inline strip */}
+          <div className="inline-flex items-center px-2 py-2.5 rounded-full glass text-[var(--muted)]">
             {[
-              { val: "500+", label: "분석 지원사업", color: "text-cyan-500" },
-              { val: "30초", label: "AI 매칭 소요", color: "text-violet-500" },
-              { val: "무료", label: "기본 이용", color: "text-emerald-500" },
-            ].map((s) => (
-              <div key={s.label} className="text-center">
-                <div className={`text-2xl sm:text-3xl font-black ${s.color}`}>{s.val}</div>
-                <div className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">{s.label}</div>
-              </div>
+              { val: "500+", label: "지원사업" },
+              { val: "30초", label: "AI 매칭" },
+              { val: "무료", label: "기본 이용" },
+            ].map((s, i) => (
+              <span key={s.label}
+                className={`text-xs sm:text-sm px-3.5 sm:px-5 ${i > 0 ? "border-l border-[var(--muted)]/20" : ""}`}>
+                <b className="text-[var(--foreground)] font-extrabold">{s.val}</b> {s.label}
+              </span>
             ))}
           </div>
         </div>
