@@ -24,9 +24,10 @@ export async function matchGrantsWithGemini(
     return fallbackResults(scored, condition);
   }
 
+  // 재랭킹은 결정적 JSON 산출 작업 → flash-lite(저지연·저비용)로 충분. 속도 우선.
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: { temperature: 0 },
+    model: "gemini-2.5-flash-lite",
+    generationConfig: { temperature: 0, responseMimeType: "application/json" },
   });
 
   try {
