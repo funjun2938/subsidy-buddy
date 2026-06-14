@@ -79,25 +79,26 @@ function buildAnswerLookup(
 
 // ── 인접 셀 결정 ─────────────────────────────────────────────────────────────
 
-function pickTarget(table: FormTable, labelCell: FormCell): FormCell | null {
-  const candidates: { score: number; cell: FormCell }[] = [];
+function pickTarget(table: FormTable, labelCell: FormCell, resolver: LabelResolver): FormCell | null {
+  const candidates: { base: number; cell: FormCell; empty: boolean }[] = [];
+  const add = (cell: FormCell | null, base: number) => {
+    if (!cell || cell === labelCell) return;
+    const t = cell.text.trim();
+    // 값칸이 아니라 '또 다른 라벨'(성명/주민번호 등 알려진 라벨)인 비어있지 않은 칸은 타깃 제외.
+    // → "신청인" 우측의 "성 명" 같은 라벨칸에 값이 잘못 채워지는 문제 방지.
+    if (t && resolver.resolve(t) !== null) return;
+    candidates.push({ base, cell, empty: !t });
+  };
   const right = table.neighborRight(labelCell);
-  const below = table.neighborBelow(labelCell);
-  if (right && right !== labelCell) {
-    const emptyBonus = right.text ? 0 : 2;
-    candidates.push({ score: 10 + emptyBonus, cell: right });
-  }
-  if (below && below !== labelCell) {
-    const emptyBonus = below.text ? 0 : 2;
-    candidates.push({ score: 5 + emptyBonus, cell: below });
-  }
-  if (right) {
-    const rr = table.neighborRight(right);
-    if (rr && rr !== labelCell) candidates.push({ score: 1, cell: rr });
-  }
+  add(right, 10);
+  add(table.neighborBelow(labelCell), 5);
+  if (right) add(table.neighborRight(right), 1);
   if (candidates.length === 0) return null;
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates[0].cell;
+  // 빈 칸을 강하게 우선(있으면 그 안에서 base 최고), 없으면 base 최고
+  const empties = candidates.filter((c) => c.empty);
+  const pool = empties.length ? empties : candidates;
+  pool.sort((a, b) => b.base - a.base);
+  return pool[0].cell;
 }
 
 // ── 라벨→타깃셀 탐지 (구조 빌더와 fillForm 공유) ──────────────────────────────
@@ -119,7 +120,7 @@ export function findLabelTargets(doc: FormDoc): LabelTarget[] {
       const text = cell.text;
       if (!looksLikeLabel(text)) continue;
       const fieldKey = resolver.resolve(text);
-      const target = pickTarget(table, cell);
+      const target = pickTarget(table, cell, resolver);
       if (!target || usedTargets.has(target)) continue;
       usedTargets.add(target);
       out.push({ labelCell: cell, targetCell: target, label: text, fieldKey });
@@ -167,7 +168,7 @@ export async function fillForm(
         continue;
       }
 
-      const target = pickTarget(table, cell);
+      const target = pickTarget(table, cell, resolver);
       if (!target) {
         unknown.push(`${text} (인접 셀 없음)`);
         continue;
