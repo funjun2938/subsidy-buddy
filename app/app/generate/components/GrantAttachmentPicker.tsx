@@ -20,6 +20,10 @@ const KIND_LABEL: Record<GrantAttachment["kind"], string> = {
 
 const canAutoFill = (ext: string) => ext === "hwp" || ext === "hwpx";
 
+// 라이브 공고 id 는 크롤러에서 "biz-PBLN_..." 로 매겨짐 → 실제 기업마당 pblancId(PBLN_...) 추출
+const toPblancId = (id: string) => (id.startsWith("biz-") ? id.slice(4) : id);
+const isBizInfo = (id: string) => toPblancId(id).startsWith("PBLN_");
+
 export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTitle: string) => void }) {
   const [grantTitle, setGrantTitle] = useState("");
   const [pblancId, setPblancId] = useState("");
@@ -49,12 +53,13 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
   }, []);
 
   const loadAttachments = useCallback(async (id: string) => {
-    if (!id) return;
+    const pid = toPblancId(id.trim()); // "biz-PBLN_..." 또는 수동 입력 모두 정규화
+    if (!pid) return;
     setLoading(true);
     setAttachments([]);
     setStatus("");
     try {
-      const res = await fetch(`/api/grant-attachments?pblancId=${encodeURIComponent(id)}`);
+      const res = await fetch(`/api/grant-attachments?pblancId=${encodeURIComponent(pid)}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setStatus(`첨부 추출 실패: ${err.error || res.status}`);
@@ -75,9 +80,10 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
 
   const pickGrant = (g: GrantSummary) => {
     setGrantTitle(g.title);
-    if (g.id.startsWith("PBLN_")) {
-      setPblancId(g.id);
-      void loadAttachments(g.id);
+    const pid = toPblancId(g.id);
+    if (pid.startsWith("PBLN_")) {
+      setPblancId(pid);
+      void loadAttachments(pid);
     } else {
       setPblancId("");
       setAttachments([]);
@@ -131,7 +137,7 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
                       ? "bg-blue-50 text-blue-700 border-blue-300"
                       : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"
                   }`}>
-                  {g.id.startsWith("PBLN_") && <span className="mr-1 text-blue-500">●</span>}
+                  {isBizInfo(g.id) && <span className="mr-1 text-blue-500">●</span>}
                   {g.title}
                 </button>
               );
