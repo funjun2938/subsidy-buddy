@@ -9,7 +9,7 @@ export function buildRerankPrompt(condition: UserCondition, grants: Grant[]): st
     category: g.category,
     targetBizTypes: g.targetBizTypes,
     amount: g.amount,
-    requirements: (g.requirements || "").slice(0, 350),
+    requirements: (g.requirements || "").slice(0, 250),
   }));
 
   return `당신은 정부 지원사업 매칭 전문가입니다.
