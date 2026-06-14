@@ -98,7 +98,7 @@ export default function GrantCard({
   match: MatchResult;
   searchParams: string;
 }) {
-  const { grant, matchScore, reason } = match;
+  const { grant, matchScore, reason, fitScore } = match;
   const cfg = scoreConfig[matchScore];
   const dd = dDay(grant.deadline);
   const urgency = getUrgency(grant.deadline);
@@ -132,7 +132,7 @@ export default function GrantCard({
             <h3 className="text-base font-bold text-white leading-snug">{grant.title}</h3>
           </div>
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <MatchScore matchScore={matchScore} />
+            <MatchScore matchScore={matchScore} fitScore={fitScore} />
             <span className="text-[10px] text-gray-500">합격률 ~{successRate.avgAcceptRate}%</span>
             <span className={`text-xs font-bold ${uCfg.ddColor}`}>
               {dd}

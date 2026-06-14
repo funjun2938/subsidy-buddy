@@ -20,11 +20,13 @@ const scoreConfig = {
 
 interface MatchScoreProps {
   matchScore: MatchResult["matchScore"];
+  fitScore?: number; // 0~100, AI 적합도 (하이브리드 재랭킹)
   className?: string;
 }
 
-export default function MatchScore({ matchScore, className = "" }: MatchScoreProps) {
+export default function MatchScore({ matchScore, fitScore, className = "" }: MatchScoreProps) {
   const cfg = scoreConfig[matchScore];
+  const showFit = typeof fitScore === "number" && isFinite(fitScore);
 
   return (
     <span
@@ -32,6 +34,7 @@ export default function MatchScore({ matchScore, className = "" }: MatchScorePro
     >
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
       {cfg.label}
+      {showFit && <span className="opacity-80 tabular-nums">· {Math.round(fitScore!)}%</span>}
     </span>
   );
 }
