@@ -142,6 +142,35 @@ export function rankGrants(grants: Grant[], condition: UserCondition, topN = 15)
     .slice(0, topN);
 }
 
+/**
+ * Like rankGrants, but guarantees at least `minimum` results when the input is
+ * non-empty. When the high/medium filter would leave fewer than `minimum`
+ * matches, falls back to the top-scoring grants regardless of grade.
+ *
+ * Fixes interview feedback: "간헐적으로 결과가 아예 안 나오는 케이스" — a user with
+ * a non-empty grant pool should always see at least a few candidates rather
+ * than an empty results page. `rankGrants` stays pure (returns [] for all-low)
+ * so its tested contract is unchanged; the minimum guarantee lives here, at the
+ * matching-engine call site.
+ */
+export function rankGrantsWithMinimum(
+  grants: Grant[],
+  condition: UserCondition,
+  topN = 15,
+  minimum = 3,
+): ScoredGrant[] {
+  const ranked = rankGrants(grants, condition, topN);
+  if (grants.length === 0 || topN <= 0 || ranked.length >= minimum) return ranked;
+
+  // Fall back: top `minimum` by score, ignoring the "low" grade filter.
+  return grants
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id)) // stable input order
+    .map(grant => { const score = ruleScore(grant, condition); return { grant, score, grade: scoreToGrade(score) }; })
+    .sort((a, b) => b.score - a.score || a.grant.id.localeCompare(b.grant.id))
+    .slice(0, Math.min(minimum, topN));
+}
+
 export function fallbackResults(scored: ScoredGrant[], condition: UserCondition) {
   return scored.map(s => ({
     grant: s.grant,

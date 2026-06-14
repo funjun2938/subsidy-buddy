@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Grant, UserCondition, MatchResult, GrantAnalysis } from "./types";
 import { getMatchReasons } from "./match-reasons";
-import { rankGrants, fallbackResults } from "./scoring";
+import { rankGrantsWithMinimum, fallbackResults } from "./scoring";
 
 function getGemini() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -13,8 +13,8 @@ export async function matchGrantsWithGemini(
   condition: UserCondition,
   grants: Grant[]
 ): Promise<MatchResult[]> {
-  // 1단계: 룰 기반 스코어링 (완전 결정적)
-  const scored = rankGrants(grants, condition);
+  // 1단계: 룰 기반 스코어링 (완전 결정적) — 후보가 있으면 최소 결과 보장
+  const scored = rankGrantsWithMinimum(grants, condition);
   if (scored.length === 0) return [];
 
   // 2단계: AI로 reason만 생성 (temperature=0)
