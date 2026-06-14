@@ -15,6 +15,7 @@
 
 import JSZip from "jszip";
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
+import type { FormDoc } from "./form-doc";
 
 // XML 노드 한 개의 형태 (preserveOrder 모드)
 //   { "tag:name": [child, child, ...], ":@": { "@_attr": "..." } }
@@ -238,7 +239,9 @@ interface SectionDoc {
 const parser = new XMLParser(PARSER_OPTIONS);
 const builder = new XMLBuilder(BUILDER_OPTIONS);
 
-export class HwpxDocument {
+export class HwpxDocument implements FormDoc {
+  // FormDoc (lib/form-doc.ts) 만족용 — 포맷 판별자
+  readonly format = "hwpx" as const;
   private members = new Map<string, Uint8Array>();
   sections: SectionDoc[] = [];
 

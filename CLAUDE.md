@@ -12,9 +12,12 @@ npm install       # install dependencies
 npm run dev       # dev server → http://localhost:3100
 npm run build     # production build
 npm run lint      # ESLint check
+npm test          # bun test (양식 채우기 코어/어댑터 단위·통합 테스트, tests/)
 ```
 
-There is no test suite configured.
+테스트는 `app/tests/` 에 있으며 **bun**으로 돌린다 (`npm test` = `bun test tests/`).
+`bun:test` 의존이라 tsconfig/eslint 에서 `tests/**` 는 제외돼 있다. 현재 커버리지:
+fill-core(라벨 매칭·인접셀·미매칭 보고) + HWP 어댑터(openFormDoc round-trip, createHwp 합성 fixture).
 
 ## Environment Variables
 
