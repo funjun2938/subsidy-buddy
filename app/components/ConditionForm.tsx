@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { storeFile } from "@/lib/file-store";
+import { recordSearch } from "@/lib/userActivity";
 import {
   BIZ_TYPES,
   REVENUE_RANGES,
@@ -196,6 +197,7 @@ export default function ConditionForm() {
     if (employeeCount) params.set("employees", employeeCount);
     if (ceoGender) params.set("ceoGender", ceoGender);
     if (certifications.size > 0) params.set("certifications", Array.from(certifications).join(","));
+    recordSearch(`${bizType} · ${region}`, "match");
     router.push(`/results?${params.toString()}`);
   }
 

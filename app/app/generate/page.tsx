@@ -7,6 +7,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { DocPreview } from "./components/DocPreview";
 import { HwpPreview, exportHwpxFromBytes } from "./components/HwpPreview";
 import { UpgradeGate } from "./components/UpgradeGate";
+import { recordDoc } from "@/lib/userActivity";
 
 export default function StudioPage() {
   const s = useDocSession();
@@ -71,6 +72,7 @@ export default function StudioPage() {
     return <StudioEntry onReady={(file, bi, grantTitle) => {
       const merged = grantTitle.trim() ? `지원사업명: ${grantTitle.trim()}\n${bi}` : bi;
       setBizInfo(merged);
+      recordDoc(grantTitle.trim() || file.name.replace(/\.hwpx?$/i, ""));
       s.openFile(file);
     }} />;
   }
