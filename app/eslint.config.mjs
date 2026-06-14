@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored third-party source (devxoul/hwpilot) — not linted.
+    "lib/vendor/**",
+    // bun test 파일 — eslint(next) 규칙 대상 아님.
+    "tests/**",
   ]),
 ]);
 

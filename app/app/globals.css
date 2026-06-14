@@ -168,6 +168,11 @@ select option { background: var(--card-bg); color: var(--foreground); }
 .light .bg-white\/8  { background-color: rgba(0,0,0,0.05) !important; }
 .light .bg-white\/10 { background-color: rgba(0,0,0,0.06) !important; }
 
+/* hover 변형도 동일하게 — 라이트에서 흰 위에 흰색은 보이지 않으므로 검정 톤으로 */
+.light .hover\:bg-white\/5:hover  { background-color: rgba(0,0,0,0.04) !important; }
+.light .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.06) !important; }
+.light .hover\:bg-white\/15:hover { background-color: rgba(0,0,0,0.08) !important; }
+
 /* ── 다크 배경 컨테이너 → 라이트 ── */
 .light .bg-gray-900\/50 { background-color: rgba(241,245,249,0.8) !important; }
 .light .bg-gray-900\/80 { background-color: rgba(248,250,252,0.95) !important; }
