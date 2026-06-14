@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 const serviceLinks = [
+  { label: "공고 찾기", href: "/match" },
   { label: "AI 문서생성", href: "/generate" },
-  { label: "전문가 매칭", href: "/experts" },
   { label: "요금제", href: "/pricing" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 const companyLinks = [

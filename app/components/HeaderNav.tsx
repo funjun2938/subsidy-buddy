@@ -8,8 +8,9 @@ import AuthNav from "./AuthNav";
 import FavoritesNav from "./FavoritesNav";
 
 const LINKS = [
+  { href: "/match", label: "공고 찾기" },
   { href: "/generate", label: "AI 문서생성" },
-  { href: "/experts", label: "전문가 매칭" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 export default function HeaderNav({ email }: { email: string | null }) {
