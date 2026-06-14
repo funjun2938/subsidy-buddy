@@ -15,10 +15,10 @@ const plans = [
       { text: "AI 지원사업 매칭", included: true },
       { text: "매칭 결과 3건까지 보기", included: true },
       { text: "사업자등록증 AI 분석", included: true },
+      { text: "AI 신청서 생성 (무료 토큰 제공)", included: true },
       { text: "상세 자격 분석", included: false },
-      { text: "AI 신청서 생성", included: false },
       { text: "마감 알림", included: false },
-      { text: "전문가 매칭", included: false },
+      { text: "무료 토큰 소진 후 계속 사용", included: false },
     ],
   },
   {
@@ -38,8 +38,8 @@ const plans = [
       { text: "상세 AI 자격 분석", included: true },
       { text: "마감 D-7, D-3, D-1 알림", included: true },
       { text: "신규 공고 실시간 알림", included: true },
-      { text: "AI 신청서 생성 월 3건", included: true },
-      { text: "전문가 매칭 할인 10%", included: true },
+      { text: "AI 신청서 생성·수정 무제한", included: true },
+      { text: "무료 토큰 제한 없음", included: true },
     ],
   },
   {
@@ -119,17 +119,17 @@ export default function PricingPage() {
         ))}
       </div>
 
-      {/* 건당 서비스 */}
+      {/* 추가 서비스 */}
       <div className="mt-16 text-center">
-        <h2 className="text-xl font-bold mb-6">건당 서비스</h2>
+        <h2 className="text-xl font-bold mb-6">AI · 전문가 서비스</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
           <div className="glass rounded-2xl p-6 border border-white/5">
             <div className="text-2xl mb-3">📝</div>
             <h3 className="font-bold mb-1">AI 신청서 생성</h3>
-            <p className="text-xs text-gray-500 mb-3">지원사업에 맞는 사업계획서 초안을 AI가 작성</p>
-            <div className="text-2xl font-black text-violet-400">29,900<span className="text-sm text-gray-500 font-normal">원/건</span></div>
+            <p className="text-xs text-gray-500 mb-3">초기 무료 토큰으로 체험하고, 소진 시 PRO로 무제한 이용</p>
+            <div className="text-2xl font-black text-violet-400">무료 토큰<span className="text-sm text-gray-500 font-normal"> 제공</span></div>
             <Link href="/generate" className="mt-4 block text-xs text-violet-400 hover:text-violet-300 transition">
-              자세히 보기 →
+              지금 사용해보기 →
             </Link>
           </div>
           <div className="glass rounded-2xl p-6 border border-white/5">
