@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Grant, UserCondition, MatchResult, GrantAnalysis } from "./types";
 import { getMatchReasons } from "./match-reasons";
-import { rankGrants, fallbackResults } from "./scoring";
+import { rankGrantsWithMinimum, fallbackResults } from "./scoring";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -11,8 +11,8 @@ export async function matchGrants(
   condition: UserCondition,
   grants: Grant[]
 ): Promise<MatchResult[]> {
-  // 1단계: 룰 기반 스코어링 (완전 결정적) — Gemini 경로와 동일
-  const scored = rankGrants(grants, condition);
+  // 1단계: 룰 기반 스코어링 (완전 결정적) — Gemini 경로와 동일 (최소 결과 보장)
+  const scored = rankGrantsWithMinimum(grants, condition);
   if (scored.length === 0) return [];
 
   // 2단계: Claude로 reason만 생성 (랭킹은 이미 확정)
