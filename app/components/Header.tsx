@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { ThemeToggle } from "./ThemeToggle";
-import AuthNav from "./AuthNav";
-import FavoritesNav from "./FavoritesNav";
+import HeaderNav from "./HeaderNav";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Header() {
@@ -23,20 +21,7 @@ export default async function Header() {
             <span className="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-semibold">AI</span>
           </div>
         </Link>
-        <nav className="flex items-center gap-1">
-          <Link href="/generate" className="px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-black/5 transition">
-            AI 문서생성
-          </Link>
-          <Link href="/experts" className="px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-black/5 transition">
-            전문가 매칭
-          </Link>
-          <FavoritesNav />
-          <Link href="/pricing" className="px-3 py-1.5 text-sm font-medium text-cyan-400 hover:text-cyan-300 rounded-lg hover:bg-cyan-500/5 transition">
-            요금제
-          </Link>
-          <AuthNav email={user?.email ?? null} />
-          <ThemeToggle />
-        </nav>
+        <HeaderNav email={user?.email ?? null} />
       </div>
     </header>
   );
