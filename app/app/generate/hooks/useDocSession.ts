@@ -42,7 +42,7 @@ export function useDocSession() {
     return out;
   }, [structure, valueMap]);
 
-  const sendCommand = useCallback(async (command: string, bizInfo: string) => {
+  const sendCommand = useCallback(async (command: string, bizInfo: string, onUsage?: (tokens: number) => void) => {
     if (!command.trim()) return;
     setMessages(m => [...m, { role: "user", text: command }]); setBusy(true);
     try {
@@ -50,6 +50,7 @@ export function useDocSession() {
         body: JSON.stringify({ fillable: fillableList(), valueMap, command, bizInfo }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "명령 실패");
+      if (typeof data.tokensUsed === "number") onUsage?.(data.tokensUsed); // 실제 토큰 사용량 차감
       if (Array.isArray(data.changes) && data.changes.length) applyChanges(data.changes);
       setMessages(m => [...m, { role: "assistant", text: data.reply || "완료" }]);
     } catch (e) { setMessages(m => [...m, { role: "assistant", text: `오류: ${e instanceof Error ? e.message : e}` }]); }

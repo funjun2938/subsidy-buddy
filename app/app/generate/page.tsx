@@ -15,11 +15,10 @@ export default function StudioPage() {
   const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
   const [gateOpen, setGateOpen] = useState(false);
 
-  // AI 생성/수정 명령 = 토큰 1개 소진. 소진 시 업그레이드 게이트 노출.
+  // AI 생성/수정 명령 = 실제 사용 토큰만큼 무료 예산에서 차감. 소진 시 업그레이드 게이트.
   const handleSend = (cmd: string) => {
     if (!tokens.canUse) { setGateOpen(true); return; }
-    tokens.consume();
-    s.sendCommand(cmd, bizInfo);
+    s.sendCommand(cmd, bizInfo, (used) => tokens.consume(used));
   };
 
   if (!s.structure) {
@@ -48,7 +47,7 @@ export default function StudioPage() {
           <ChatPanel structure={s.structure} valueMap={s.valueMap} messages={s.messages} busy={s.busy}
             onSend={handleSend} onUndo={s.undo} canUndo={s.canUndo}
             onExport={s.exportDoc} onShowPreview={() => setMobileTab("preview")}
-            tokenInfo={tokens.mounted ? { isPro: tokens.isPro, remaining: tokens.remaining, limit: tokens.limit } : null} />
+            tokenInfo={tokens.mounted ? { isPro: tokens.isPro, percent: tokens.percent } : null} />
         </div>
         <div className={`${mobileTab === "preview" ? "flex" : "hidden"} md:flex flex-1 min-h-0`}>
           <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged} onEditCell={s.editCell} />

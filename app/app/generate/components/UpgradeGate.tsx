@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import { FREE_DAILY } from "@/lib/docTokens";
 
 export function UpgradeGate({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null;
@@ -11,12 +10,12 @@ export function UpgradeGate({ open, onClose }: { open: boolean; onClose: () => v
         <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-2xl mb-4 shadow-lg shadow-violet-500/25">
           🪙
         </div>
-        <h2 className="text-lg font-black mb-2 text-[var(--foreground)]">오늘의 무료 토큰을 모두 썼어요</h2>
+        <h2 className="text-lg font-black mb-2 text-[var(--foreground)]">무료 토큰을 모두 사용했어요</h2>
         <p className="text-sm text-[var(--muted)] leading-relaxed mb-6">
-          AI 신청서 생성·수정은 하루 <b className="text-[var(--foreground)]">{FREE_DAILY}건</b>까지 무료예요.
+          AI 신청서 생성·수정에 쓰는 <b className="text-[var(--foreground)]">무료 토큰(100%)</b>을 다 쓰셨어요.
           <br />
-          <b className="text-[var(--foreground)]">PRO</b>로 업그레이드하면 계속 생성·수정할 수 있고,
-          그냥 두시면 <b className="text-[var(--foreground)]">내일 다시 무료로 충전</b>돼요.
+          <b className="text-[var(--foreground)]">PRO</b>로 업그레이드하면 제한 없이 계속 쓸 수 있고,
+          그냥 두시면 <b className="text-[var(--foreground)]">내일 다시 충전</b>돼요.
         </p>
         <div className="flex flex-col gap-2.5">
           <Link href="/pricing"

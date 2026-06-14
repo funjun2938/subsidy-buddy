@@ -22,15 +22,18 @@ export async function POST(request: NextRequest) {
   try { text = await runLLM(prompt); }
   catch (e) { return Response.json({ error: "LLM 호출 실패", detail: e instanceof Error ? e.message : String(e) }, { status: 502 }); }
 
+  // 이 AI 호출에서 사용한 토큰 추정치 (입력+출력 문자수 / 4). 무료 토큰 예산에서 차감용.
+  const tokensUsed = Math.ceil((prompt.length + text.length) / 4);
+
   const parsed = parseJsonLoose(text) as { changes?: CellChange[]; reply?: string } | null;
-  if (!parsed) return Response.json({ changes: [], reply: "이해하지 못했어요. 다르게 말해줄래요?" });
+  if (!parsed) return Response.json({ changes: [], reply: "이해하지 못했어요. 다르게 말해줄래요?", tokensUsed });
 
   const fillableRefs = new Set(fillable.map(f => f.ref));
   const changes = filterChanges(Array.isArray(parsed.changes) ? parsed.changes : [], fillableRefs);
   const reply = typeof parsed.reply === "string" && parsed.reply.trim()
     ? parsed.reply
     : (changes.length ? `${changes.length}개 칸을 수정했어요.` : "바꿀 내용을 못 찾았어요.");
-  return Response.json({ changes, reply });
+  return Response.json({ changes, reply, tokensUsed });
 }
 
 function buildCommandPrompt(fillable: FillableCell[], valueMap: Record<string, string>, command: string, bizInfo: string): string {

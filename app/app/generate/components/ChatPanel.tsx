@@ -8,7 +8,7 @@ export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo,
   structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean;
   onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean; onExport: () => void;
   onShowPreview?: () => void;
-  tokenInfo?: { isPro: boolean; remaining: number; limit: number } | null;
+  tokenInfo?: { isPro: boolean; percent: number } | null;
 }) {
   const [input, setInput] = useState("");
   const submit = () => { if (input.trim() && !busy) { onSend(input.trim()); setInput(""); } };
@@ -21,8 +21,11 @@ export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo,
             tokenInfo.isPro ? (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 text-white">PRO ∞</span>
             ) : (
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${tokenInfo.remaining > 0 ? "text-[#2d6cf6] border-[#bcd0fb] bg-[#eef3ff]" : "text-[#c0392b] border-[#f3c4bd] bg-[#fdeeec]"}`}>
-                무료 {tokenInfo.remaining}/{tokenInfo.limit}
+              <span className="flex items-center gap-1.5" title={`무료 토큰 ${tokenInfo.percent}% 사용`}>
+                <span className="w-12 h-1.5 rounded-full bg-[#e3e6ec] overflow-hidden">
+                  <span className="block h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 transition-all" style={{ width: `${tokenInfo.percent}%` }} />
+                </span>
+                <span className={`text-[10px] font-semibold ${tokenInfo.percent >= 100 ? "text-[#c0392b]" : "text-[#6b7280]"}`}>{tokenInfo.percent}%</span>
               </span>
             )
           )}
