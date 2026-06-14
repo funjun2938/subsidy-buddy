@@ -72,7 +72,7 @@ export default function Home() {
           {/* 매칭 */}
           <Link href="/match" className="group shine glass glass-hover rounded-2xl p-6 transition-all hover:-translate-y-1 duration-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform float">🎯</div>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🎯</div>
               <span className="text-[var(--muted)] transition-transform group-hover:translate-x-0.5">→</span>
             </div>
             <h3 className="font-bold mb-2 text-[var(--foreground)]">AI 맞춤 매칭</h3>
@@ -84,7 +84,7 @@ export default function Home() {
           <Link href="/generate" className="group shine gradient-border rounded-2xl p-6 transition-all hover:-translate-y-1.5 duration-200">
             <span className="absolute top-3 right-3 text-[10px] font-bold text-white bg-gradient-to-r from-cyan-500 to-violet-500 rounded-full px-2 py-0.5 shadow-sm">⭐ 인기</span>
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform float" style={{ animationDelay: "1s" }}>📝</div>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/25 to-violet-500/5 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📝</div>
               <span className="text-violet-500 transition-transform group-hover:translate-x-0.5">→</span>
             </div>
             <h3 className="font-bold mb-2 text-[var(--foreground)]">AI 신청서 생성</h3>

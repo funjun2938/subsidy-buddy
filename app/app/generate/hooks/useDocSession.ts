@@ -12,6 +12,8 @@ export function useDocSession() {
   const [history, setHistory] = useState<ValueMap[]>([]);
   const [busy, setBusy] = useState(false);
   const [lastChanged, setLastChanged] = useState<string[]>([]);
+  // 이번 세션에서 AI/사용자가 실제로 채운 칸 ref (양식 원본 텍스트와 구분 → 색칠 기준)
+  const [filledRefs, setFilledRefs] = useState<Set<string>>(new Set());
 
   const pushHistory = useCallback((vm: ValueMap) => setHistory(h => [...h, vm]), []);
 
@@ -31,6 +33,12 @@ export function useDocSession() {
   const applyChanges = useCallback((changes: CellChange[]) => {
     setValueMap(vm => { pushHistory(vm); const next = { ...vm }; for (const c of changes) next[c.ref] = c.value; return next; });
     setLastChanged(changes.map(c => c.ref));
+    // 값이 있는 변경은 '채움'으로, 빈 값으로 지운 건 '채움 해제'로 기록
+    setFilledRefs(prev => {
+      const next = new Set(prev);
+      for (const c of changes) { if (c.value.trim()) next.add(c.ref); else next.delete(c.ref); }
+      return next;
+    });
     setTimeout(() => setLastChanged([]), 2500);
   }, [pushHistory]);
 
@@ -76,5 +84,5 @@ export function useDocSession() {
     finally { setBusy(false); }
   }, [file, valueMap]);
 
-  return { file, structure, valueMap, messages, busy, lastChanged, openFile, sendCommand, editCell, undo, exportDoc, canUndo: history.length > 0 };
+  return { file, structure, valueMap, messages, busy, lastChanged, filledRefs, openFile, sendCommand, editCell, undo, exportDoc, canUndo: history.length > 0 };
 }
