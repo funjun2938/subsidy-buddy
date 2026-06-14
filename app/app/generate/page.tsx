@@ -60,7 +60,8 @@ export default function StudioPage() {
     `flex-1 py-2.5 text-[12px] font-semibold transition-colors ${active ? "text-[#2d6cf6] border-b-2 border-[#2d6cf6]" : "text-[#9aa1ad]"}`;
 
   return (
-    <div className="fixed inset-0 flex flex-col">
+    // 전역 헤더(PRO배너 40px + 헤더 64px = 104px) 아래에서 시작 → 토글바/패널헤더가 헤더에 안 가림
+    <div className="fixed inset-x-0 bottom-0 top-[104px] flex flex-col border-t border-[#e8eaee]">
       {/* 모바일 전용 탭 바 (데스크톱은 2단 동시 표시) */}
       <div className="md:hidden flex shrink-0 border-b border-[#e8eaee] bg-white text-[13px] font-semibold">
         {([["chat", "✍️ 작성"], ["preview", "📄 미리보기"]] as const).map(([key, label]) => (
