@@ -17,6 +17,37 @@ interface BizInfoItem {
 const BIZINFO_BASE =
   "https://apis.data.go.kr/1421000/bizinfo/pblancBsnsService";
 
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * fetch with exponential-backoff retry for transient failures.
+ * 외부 공공 API(기업마당)가 간헐적으로 5xx/네트워크 오류를 내는 경우를 흡수한다.
+ * 최종 시도까지 실패하면 마지막 Response(또는 마지막 에러)를 그대로 반환/throw.
+ */
+export async function fetchWithRetry(url: string, options?: RequestInit): Promise<Response> {
+  let failureCount = 0;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      failureCount++;
+      console.warn(`[Crawler] Request failed (failures: ${failureCount}, status: ${res.status})`);
+      if (attempt >= MAX_RETRIES) return res;
+    } catch (error) {
+      failureCount++;
+      console.warn(`[Crawler] Request error (failures: ${failureCount}):`, error);
+      if (attempt >= MAX_RETRIES) throw error;
+    }
+    await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt)); // 1s, 2s, 4s
+  }
+  throw new Error("fetchWithRetry: unreachable");
+}
+
 export async function fetchBizInfoGrants(): Promise<Grant[]> {
   const apiKey = process.env.BIZINFO_API_KEY;
   if (!apiKey || apiKey === "your_bizinfo_api_key_here") {
@@ -31,11 +62,11 @@ export async function fetchBizInfoGrants(): Promise<Grant[]> {
       pageNo: String(page),
       numOfRows: "100",
     });
-    const res = await fetch(`${BIZINFO_BASE}?${params.toString()}`, {
+    const res = await fetchWithRetry(`${BIZINFO_BASE}?${params.toString()}`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) {
-      console.error(`[Crawler] Page ${page} error: ${res.status}`);
+      console.error(`[Crawler] Page ${page} failed after ${MAX_RETRIES} retries: ${res.status}`);
       return { items: [] };
     }
     const data = await res.json();
