@@ -16,12 +16,18 @@ export async function GET(request: NextRequest) {
     let list = grants;
     if (q) {
       const qq = q.toLowerCase();
+      // 제목·지역 위주(직관적), 카테고리는 보조. orgName 은 오탐(서울 소재 기관 등) 많아 제외.
       list = grants.filter((g) =>
         g.title.toLowerCase().includes(qq) ||
         (g.region || "").toLowerCase().includes(qq) ||
-        (g.orgName || "").toLowerCase().includes(qq) ||
         (g.category || "").toLowerCase().includes(qq),
       );
+      // 제목에 키워드 포함된 공고를 앞으로 (정확도 우선)
+      list = [...list].sort((a, b) => {
+        const at = a.title.toLowerCase().includes(qq) ? 0 : 1;
+        const bt = b.title.toLowerCase().includes(qq) ? 0 : 1;
+        return at - bt;
+      });
     }
     const sliced = limit > 0 ? list.slice(0, limit) : list;
     return Response.json({ grants: sliced, total: list.length });
