@@ -27,30 +27,53 @@ const isBizInfo = (id: string) => toPblancId(id).startsWith("PBLN_");
 export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTitle: string) => void }) {
   const [grantTitle, setGrantTitle] = useState("");
   const [pblancId, setPblancId] = useState("");
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [options, setOptions] = useState<GrantSummary[]>([]);
   const [attachments, setAttachments] = useState<GrantAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [downloading, setDownloading] = useState(false);
 
-  // 마감 임박 실제 공고 6개 — 진입 시 1회
+  const toSummaries = (raw: unknown): GrantSummary[] =>
+    (((raw as { grants?: unknown[] })?.grants) || []).map((g) => {
+      const x = g as { id: string; title: string; deadline: string; orgName?: string };
+      return { id: x.id, title: x.title, deadline: x.deadline, orgName: x.orgName };
+    });
+
+  // 진입 시: 마감 임박 공고 6개를 기본 노출
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/grants");
+        const res = await fetch("/api/grants?limit=6");
         if (!res.ok) return;
-        const data = await res.json();
-        const list: GrantSummary[] = (data.grants || []).slice(0, 6).map(
-          (g: { id: string; title: string; deadline: string; orgName?: string }) => ({
-            id: g.id, title: g.title, deadline: g.deadline, orgName: g.orgName,
-          }),
-        );
-        if (!cancelled) setOptions(list);
+        if (!cancelled) setOptions(toSummaries(await res.json()).slice(0, 6));
       } catch { /* silent */ }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // 조회: 키워드로 공고 검색 (지역/제목/기관)
+  const search = useCallback(async () => {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
+    setStatus("");
+    try {
+      const res = await fetch(`/api/grants?q=${encodeURIComponent(q)}&limit=20`);
+      const data = await res.json();
+      const list = toSummaries(data);
+      setOptions(list);
+      setSearched(true);
+      if (list.length === 0) setStatus(`"${q}" 검색 결과가 없어요. 다른 키워드로 시도하거나 pblancId를 직접 입력하세요.`);
+    } catch (e) {
+      setStatus(`검색 오류: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSearching(false);
+    }
+  }, [query]);
 
   const loadAttachments = useCallback(async (id: string) => {
     const pid = toPblancId(id.trim()); // "biz-PBLN_..." 또는 수동 입력 모두 정규화
@@ -120,12 +143,23 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
 
   return (
     <div className="space-y-3">
-      <input value={grantTitle} onChange={(e) => setGrantTitle(e.target.value)} placeholder="지원사업명(선택)"
-        className="w-full border rounded-lg px-3 py-2 text-sm" />
+      {/* 공고 검색 (조회 버튼) */}
+      <div className="flex gap-2">
+        <input value={query} onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void search(); } }}
+          placeholder="지역·키워드로 공고 검색 (예: 서울, 창업, 제조)"
+          className="flex-1 border rounded-lg px-3 py-2 text-base md:text-sm" />
+        <button type="button" onClick={() => void search()} disabled={!query.trim() || searching}
+          className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-50 shrink-0">
+          {searching ? "조회 중…" : "🔎 조회"}
+        </button>
+      </div>
 
       {options.length > 0 && (
         <div>
-          <p className="text-[11px] text-gray-500 mb-1.5">📅 마감 임박 공고에서 선택 (클릭 시 첨부 양식 자동 로드)</p>
+          <p className="text-[11px] text-gray-500 mb-1.5">
+            {searched ? `🔎 검색 결과 ${options.length}건 (클릭 시 첨부 양식 자동 로드)` : "📅 마감 임박 공고 (검색하거나 클릭해서 첨부 로드)"}
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {options.map((g) => {
               const selected = grantTitle === g.title;

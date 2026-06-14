@@ -10,7 +10,21 @@ export async function GET(request: NextRequest) {
   const grants = await getAllGrants();
 
   if (!id) {
-    return Response.json({ grants, total: grants.length });
+    // 키워드 검색(q): 지역·제목·기관·카테고리에서 매칭. limit 으로 개수 제한.
+    const q = searchParams.get("q")?.trim();
+    const limit = Math.min(Number(searchParams.get("limit")) || 0, 50);
+    let list = grants;
+    if (q) {
+      const qq = q.toLowerCase();
+      list = grants.filter((g) =>
+        g.title.toLowerCase().includes(qq) ||
+        (g.region || "").toLowerCase().includes(qq) ||
+        (g.orgName || "").toLowerCase().includes(qq) ||
+        (g.category || "").toLowerCase().includes(qq),
+      );
+    }
+    const sliced = limit > 0 ? list.slice(0, limit) : list;
+    return Response.json({ grants: sliced, total: list.length });
   }
 
   const grant = findGrantById(grants, id);
