@@ -15,33 +15,33 @@ export default function Home() {
           <div className="absolute bottom-[-10%] left-[40%] w-[300px] h-[300px] bg-pink-500/5 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-5 pt-16 sm:pt-20 pb-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-xs text-[var(--muted)] mb-7">
+        <div className="relative max-w-5xl mx-auto px-5 pt-10 sm:pt-20 pb-8 sm:pb-10 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass text-[11px] sm:text-xs text-[var(--muted)] mb-5 sm:mb-7">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-ring" />
             매칭부터 신청서 작성까지, AI 원스톱
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.1] mb-6 text-[var(--foreground)]">
+          <h1 className="text-[26px] sm:text-5xl font-black tracking-tight leading-[1.25] sm:leading-[1.1] mb-4 sm:mb-6 text-[var(--foreground)]">
             정부 지원금, 찾기부터{" "}
             <span className="gradient-text">신청서 작성</span>
             <br />
             까지 AI가 다 해드립니다
           </h1>
 
-          <p className="text-base sm:text-lg text-[var(--muted)] max-w-xl mx-auto mb-9 leading-relaxed">
+          <p className="text-[13px] sm:text-base text-[var(--muted)] max-w-xl mx-auto mb-7 sm:mb-9 leading-relaxed">
             사업자등록증 한 장이면 끝. 딱 맞는 지원사업을 찾고,
             <br className="hidden sm:block" />
             공고 양식에 신청서까지 AI가 자동으로 채워드립니다.
           </p>
 
           {/* Primary CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 mb-14">
+          <div className="flex flex-col sm:flex-row justify-center gap-2.5 sm:gap-3 mb-10 sm:mb-14">
             <Link href="#match"
-              className="px-7 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 transition shadow-lg shadow-cyan-500/25">
+              className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base text-white bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 transition shadow-lg shadow-cyan-500/25">
               🎯 내 지원금 찾기 <span className="opacity-80 font-medium">· 무료</span>
             </Link>
             <Link href="/generate"
-              className="px-7 py-3.5 rounded-xl font-bold glass glass-hover text-[var(--foreground)] transition">
+              className="px-6 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base glass glass-hover text-[var(--foreground)] transition">
               📝 AI 신청서 만들기
             </Link>
           </div>
@@ -54,8 +54,8 @@ export default function Home() {
               { val: "무료", label: "기본 이용", color: "text-emerald-500" },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className={`text-3xl font-black ${s.color}`}>{s.val}</div>
-                <div className="text-xs text-[var(--muted)] mt-1">{s.label}</div>
+                <div className={`text-2xl sm:text-3xl font-black ${s.color}`}>{s.val}</div>
+                <div className="text-[11px] sm:text-xs text-[var(--muted)] mt-1">{s.label}</div>
               </div>
             ))}
           </div>
@@ -65,7 +65,7 @@ export default function Home() {
       {/* Feature Cards — 핵심 기능을 상단에 노출 */}
       <section className="max-w-5xl mx-auto px-5 pt-4 pb-16">
         <div className="text-center mb-10">
-          <h2 className="text-2xl font-black mb-3 text-[var(--foreground)]">3단계로 끝내는 지원금 신청</h2>
+          <h2 className="text-xl sm:text-2xl font-black mb-3 text-[var(--foreground)]">3단계로 끝내는 지원금 신청</h2>
           <p className="text-[var(--muted)] text-sm">매칭 → 신청서 작성 → 전문가 연결, 필요한 만큼만</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -111,7 +111,7 @@ export default function Home() {
       {/* Matching Form */}
       <section id="match" className="relative max-w-2xl mx-auto px-5 pb-20 scroll-mt-28">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-black mb-2 text-[var(--foreground)]">🎯 지금 바로 매칭해보기</h2>
+          <h2 className="text-xl sm:text-2xl font-black mb-2 text-[var(--foreground)]">🎯 지금 바로 매칭해보기</h2>
           <p className="text-[var(--muted)] text-sm">사업 정보를 입력하면 30초 안에 결과를 드려요 · 무료</p>
         </div>
         <div className="glass rounded-3xl p-7 sm:p-9 shadow-2xl shadow-black/10">
