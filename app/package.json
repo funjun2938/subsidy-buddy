@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "copy-wasm": "cp node_modules/@rhwp/core/rhwp_bg.wasm public/rhwp_bg.wasm",
+    "predev": "npm run copy-wasm",
     "dev": "next dev --port 3100",
+    "prebuild": "npm run copy-wasm",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -16,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
     "@google/generative-ai": "^0.24.1",
+    "@rhwp/core": "^0.7.15",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.1",
     "@tosspayments/tosspayments-sdk": "^2.7.0",
