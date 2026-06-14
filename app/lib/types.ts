@@ -32,6 +32,7 @@ export interface MatchResult {
   matchScore: "high" | "medium" | "low";
   reason: string;
   matchReasons?: string[];
+  fitScore?: number; // 0~100, 룰 점수 + AI 적합도 블렌딩 (하이브리드 재랭킹)
 }
 
 export interface GrantAnalysis {

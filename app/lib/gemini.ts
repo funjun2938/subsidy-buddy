@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Grant, UserCondition, MatchResult, GrantAnalysis } from "./types";
 import { getMatchReasons } from "./match-reasons";
-import { rankGrantsWithMinimum, fallbackResults } from "./scoring";
+import { rankGrantsWithMinimum, fallbackResults, blendFits } from "./scoring";
+import { buildRerankPrompt, parseFits } from "./rerank";
 
 function getGemini() {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -17,7 +18,7 @@ export async function matchGrantsWithGemini(
   const scored = rankGrantsWithMinimum(grants, condition);
   if (scored.length === 0) return [];
 
-  // 2단계: AI로 reason만 생성 (temperature=0)
+  // 2단계: Gemini 재랭킹 — 자격요건 vs 프로필 적합도(0~100)+이유 평가 (temperature=0)
   const genAI = getGemini();
   if (!genAI) {
     return fallbackResults(scored, condition);
@@ -28,48 +29,21 @@ export async function matchGrantsWithGemini(
     generationConfig: { temperature: 0 },
   });
 
-  const domainDesc = condition.summary ? `사업 내용: ${condition.summary}` : "";
-  const grantsForAI = scored.map(s => ({
-    id: s.grant.id,
-    title: s.grant.title,
-    grade: s.grade,
-    score: s.score,
-  }));
-
-  const prompt = `아래 사용자 정보와 이미 룰 기반으로 스코어링된 지원사업 목록이 있습니다.
-각 지원사업에 대해 매칭 판정 이유를 한국어 1문장으로 작성해주세요.
-
-[사용자]
-업종: ${condition.bizType} / 매출: ${condition.revenue} / 지역: ${condition.region} / 업력: ${condition.bizAge}
-${domainDesc}
-
-[스코어링 결과]
-${JSON.stringify(grantsForAI)}
-
-반드시 아래 JSON만 응답 (마크다운 없이):
-[{"id":"사업id","reason":"판정이유 1문장"}]`;
-
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const reasons: { id: string; reason: string }[] = JSON.parse(cleaned);
-    const reasonMap = new Map(reasons.map(r => [r.id, r.reason]));
+    const result = await model.generateContent(buildRerankPrompt(condition, scored.map(s => s.grant)));
+    const { fitById, reasonById } = parseFits(result.response.text());
+    const ranked = blendFits(scored, fitById);
 
-    return scored.map(s => ({
-      grant: s.grant,
-      matchScore: s.grade,
-      reason: reasonMap.get(s.grant.id) || `${condition.bizType} 분야 매칭`,
-      matchReasons: getMatchReasons(s.grant, condition),
+    return ranked.map(r => ({
+      grant: r.grant,
+      matchScore: r.grade,
+      reason: reasonById[r.grant.id] || `${condition.bizType} 분야 매칭`,
+      matchReasons: getMatchReasons(r.grant, condition),
+      fitScore: Math.round(r.blended),
     }));
   } catch (error) {
-    console.error("[Gemini] Reason generation error:", error);
-    return scored.map(s => ({
-      grant: s.grant,
-      matchScore: s.grade,
-      reason: `${condition.bizType} / ${condition.region} 기준 매칭 (점수: ${s.score})`,
-      matchReasons: getMatchReasons(s.grant, condition),
-    }));
+    console.error("[Gemini] Rerank error:", error);
+    return fallbackResults(scored, condition);
   }
 }
 

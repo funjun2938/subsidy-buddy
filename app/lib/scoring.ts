@@ -31,6 +31,18 @@ function parseBizAge(bizAge: string): number {
   return 3;
 }
 
+// 사용자 매출 구간 문자열 → 대략적인 원(₩) 상한 추정. 알 수 없으면 null.
+function parseRevenue(revenue: string): number | null {
+  if (!revenue) return null;
+  if (revenue.includes("없음")) return 0;
+  if (revenue.includes("이상")) return Number.MAX_SAFE_INTEGER; // 상한 없는 큰 매출
+  const eok = [...revenue.matchAll(/(\d+(?:\.\d+)?)\s*억/g)].map((m) => parseFloat(m[1]));
+  if (eok.length) return Math.round(Math.max(...eok) * 100_000_000);
+  const man = [...revenue.matchAll(/(\d+(?:\.\d+)?)\s*만/g)].map((m) => parseFloat(m[1]));
+  if (man.length) return Math.round(Math.max(...man) * 10_000);
+  return null;
+}
+
 function extractKeywords(text: string): string[] {
   const stopwords = new Set([
     "있는", "하는", "위한", "대한", "통한", "관련", "기반", "등을", "또는",
@@ -88,6 +100,15 @@ export function ruleScore(grant: Grant, condition: UserCondition): number {
     score -= 10;
   } else {
     score += 10;
+  }
+
+  // 매출 요건 (grant.maxRevenue 가 있을 때만 적용; 없으면 기존 동작 유지)
+  if (grant.maxRevenue !== undefined) {
+    const rev = parseRevenue(condition.revenue);
+    if (rev !== null) {
+      if (rev <= grant.maxRevenue) score += 8;   // 매출 요건 충족
+      else score -= 20;                            // 매출 상한 초과 → 사실상 부적격
+    }
   }
 
   // 도메인 키워드 보너스 (0 ~ +25)
@@ -177,5 +198,39 @@ export function fallbackResults(scored: ScoredGrant[], condition: UserCondition)
     matchScore: s.grade,
     reason: `업종(${condition.bizType})과 지역(${condition.region}) 기준 매칭`,
     matchReasons: getMatchReasons(s.grant, condition),
+    fitScore: scoreToFit(s.score),
   }));
+}
+
+// ── 하이브리드 재랭킹: 룰 점수 + LLM 적합도(0~100) 블렌딩 ───────────────────
+export interface RankedFit { grant: Grant; ruleScore: number; fit: number; blended: number; grade: "high" | "medium" | "low"; }
+
+function blendedToGrade(b: number): "high" | "medium" | "low" {
+  return b >= 66 ? "high" : b >= 40 ? "medium" : "low";
+}
+
+// 룰 점수(대략 -55~120)를 0~100 으로 단순 변환 (fallback 표시/LLM 미응답 grant 용)
+function scoreToFit(score: number): number {
+  return Math.min(100, Math.max(0, Math.round(((score + 30) / 130) * 100)));
+}
+
+/**
+ * 후보(ScoredGrant)에 LLM 적합도(fitById, 0~100)를 결합해 재정렬한다.
+ * blended = ruleWeight·(룰점수 정규화) + (1-ruleWeight)·(LLM 적합도).
+ * LLM 응답이 없는 grant 는 룰 점수 정규화로 대체. 동점은 id 로 안정 정렬.
+ */
+export function blendFits(scored: ScoredGrant[], fitById: Record<string, number>, ruleWeight = 0.45): RankedFit[] {
+  if (scored.length === 0) return [];
+  const vals = scored.map(s => s.score);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const norm = (v: number) => (max === min ? 60 : ((v - min) / (max - min)) * 100);
+  return scored
+    .map(s => {
+      const rn = norm(s.score);
+      const raw = fitById[s.grant.id];
+      const fit = typeof raw === "number" && isFinite(raw) ? Math.min(100, Math.max(0, raw)) : rn;
+      const blended = ruleWeight * rn + (1 - ruleWeight) * fit;
+      return { grant: s.grant, ruleScore: s.score, fit, blended, grade: blendedToGrade(blended) };
+    })
+    .sort((a, b) => b.blended - a.blended || a.grant.id.localeCompare(b.grant.id));
 }
