@@ -4,14 +4,15 @@ import type { DocStructure, ValueMap } from "@/lib/doc-structure";
 import type { ChatMessage } from "../hooks/useDocSession";
 import { SummaryBubble } from "./SummaryBubble";
 
-export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport }: {
+export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onShowPreview }: {
   structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean;
   onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean; onExport: () => void;
+  onShowPreview?: () => void;
 }) {
   const [input, setInput] = useState("");
   const submit = () => { if (input.trim() && !busy) { onSend(input.trim()); setInput(""); } };
   return (
-    <div className="flex-[0_0_42%] flex flex-col bg-[#f7f8fa] border-r border-[#e8eaee] min-h-0">
+    <div className="w-full flex flex-col bg-[#f7f8fa] md:border-r border-[#e8eaee] min-h-0">
       <div className="px-4 py-3 border-b border-[#e8eaee] font-bold text-[#1f2430] text-sm flex items-center justify-between">
         <span>✍️ AI 신청서 작성</span>
         <div className="flex gap-1.5">
@@ -35,10 +36,15 @@ export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo,
           <textarea value={input} onChange={e => setInput(e.target.value)} rows={1}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
             placeholder="명령을 입력하세요… 예) 대표자를 ○○로 바꿔줘"
-            className="flex-1 bg-transparent outline-none resize-none text-[12.5px]" />
-          <button onClick={submit} disabled={busy} className="bg-[#2d6cf6] text-white rounded-lg px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50">전송</button>
+            className="flex-1 bg-transparent outline-none resize-none text-[16px] md:text-[12.5px]" />
+          <button onClick={submit} disabled={busy} className="bg-[#2d6cf6] text-white rounded-lg px-3 py-2 md:py-1.5 text-[13px] md:text-[12px] font-semibold disabled:opacity-50">전송</button>
         </div>
-        <div className="mt-1.5 text-[10.5px] text-[#9aa1ad]">자연어로 말하면 오른쪽 한글 문서의 <b>내용만</b> 수정됩니다.</div>
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <span className="text-[10.5px] text-[#9aa1ad]">자연어로 말하면 미리보기 문서의 <b>내용만</b> 수정됩니다.</span>
+          {onShowPreview && (
+            <button onClick={onShowPreview} className="md:hidden shrink-0 text-[11px] font-semibold text-[#2d6cf6]">📄 미리보기 →</button>
+          )}
+        </div>
       </div>
     </div>
   );
