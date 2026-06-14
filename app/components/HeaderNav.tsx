@@ -7,15 +7,19 @@ import { ThemeToggle } from "./ThemeToggle";
 import AuthNav from "./AuthNav";
 import FavoritesNav from "./FavoritesNav";
 
-const LINKS = [
+const BASE_LINKS = [
   { href: "/match", label: "공고 찾기" },
   { href: "/generate", label: "AI 문서생성" },
   { href: "/faq", label: "FAQ" },
 ];
 
-export default function HeaderNav({ email }: { email: string | null }) {
+export default function HeaderNav({ email, isLoggedIn = false }: { email: string | null; isLoggedIn?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // 로그인 시 '내 지원공고' 탭 노출
+  const LINKS = isLoggedIn
+    ? [{ href: "/my", label: "내 지원공고" }, ...BASE_LINKS]
+    : BASE_LINKS;
 
   // 라우트가 바뀌면 모바일 메뉴 자동 닫기
   useEffect(() => {

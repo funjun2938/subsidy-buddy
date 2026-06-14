@@ -10,7 +10,7 @@ export default async function Header() {
 
   return (
     <header className="glass sticky top-10 z-50">
-      <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
+      <div className="w-full px-4 sm:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow">
             <span className="text-white font-black text-sm">B</span>
@@ -21,7 +21,7 @@ export default async function Header() {
             <span className="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-semibold">AI</span>
           </div>
         </Link>
-        <HeaderNav email={user?.email ?? null} />
+        <HeaderNav email={user?.email ?? null} isLoggedIn={!!user} />
       </div>
     </header>
   );

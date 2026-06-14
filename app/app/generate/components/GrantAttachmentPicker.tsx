@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { recordSearch } from "@/lib/userActivity";
 
 // 공고 → 첨부 신청서 자동 로드 → .hwp/.hwpx Blob 다운로드 → File 로 변환해 onPick.
 // (구 page.tsx 의 loadAttachments / 마감임박 칩 / download-attachment 흐름을 라이트 네이티브로 이식)
@@ -59,6 +60,7 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
   const search = useCallback(async () => {
     const q = query.trim();
     if (!q) return;
+    recordSearch(q, "grant");
     setSearching(true);
     setStatus("");
     try {
