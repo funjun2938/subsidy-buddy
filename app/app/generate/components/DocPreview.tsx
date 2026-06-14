@@ -3,13 +3,15 @@ import { useState } from "react";
 import type { DocStructure, ValueMap } from "@/lib/doc-structure";
 import { buildPreviewRows } from "@/lib/preview-grid";
 
-export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
+export function DocPreview({ structure, valueMap, lastChanged, filledRefs, onEditCell }: {
   structure: DocStructure; valueMap: ValueMap; lastChanged: string[];
+  filledRefs?: Set<string>;
   onEditCell: (ref: string, value: string) => void;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const changedSet = new Set(lastChanged);
+  const filled = filledRefs ?? new Set<string>();
 
   return (
     <div className="flex-1 flex flex-col bg-[#eef0f3] min-h-0">
@@ -26,11 +28,12 @@ export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
                   <tr key={r}>
                     {rowCells.map((cell) => {
                       const val = valueMap[cell.ref];
-                      const filled = !!val?.trim();
+                      const hasValue = !!val?.trim();          // 표시용: 값(원본 텍스트 포함)이 있는가
+                      const isFilled = filled.has(cell.ref);   // 색칠용: 이번 세션에 AI/내가 채웠는가
                       const isChanged = changedSet.has(cell.ref);
                       const bg = !cell.isFillable ? "bg-[#f3f5f8] font-semibold"
                         : isChanged ? "bg-[#eaf1ff] outline outline-2 outline-[#2d6cf6]"
-                        : filled ? "bg-[#fffbe6]" : "bg-white";
+                        : isFilled ? "bg-[#fffbe6]" : "bg-white";
                       const editingThis = editing === cell.ref;
                       return (
                         <td key={cell.ref}
@@ -45,7 +48,7 @@ export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
                               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onEditCell(cell.ref, draft); setEditing(null); } }}
                               className="w-full bg-transparent outline-none resize-none text-[16px] md:text-[12px]" />
                           ) : cell.isFillable
-                            ? (filled ? val : <span className="text-[#b0b6c0]">(클릭/명령으로 입력)</span>)
+                            ? (hasValue ? val : <span className="text-[#b0b6c0]">(클릭/명령으로 입력)</span>)
                             : cell.label}
                         </td>
                       );
@@ -55,7 +58,7 @@ export function DocPreview({ structure, valueMap, lastChanged, onEditCell }: {
               </tbody>
             </table>
           ))}
-          <div className="text-[9.5px] text-[#9aa1ad] mt-2">노랑=입력됨 · 파랑=방금 수정 · 회색=미입력 / 표·칸 구조는 바뀌지 않음</div>
+          <div className="text-[9.5px] text-[#9aa1ad] mt-2">🟡 AI가 채운 칸 · 🔵 방금 수정 · ⬜ 입력 가능한 빈 칸 · 🔘 양식 고정(라벨) / 표·칸 구조는 바뀌지 않음</div>
         </div>
       </div>
     </div>

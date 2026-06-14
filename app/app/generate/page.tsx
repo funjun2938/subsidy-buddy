@@ -50,7 +50,7 @@ export default function StudioPage() {
             tokenInfo={tokens.mounted ? { isPro: tokens.isPro, percent: tokens.percent } : null} />
         </div>
         <div className={`${mobileTab === "preview" ? "flex" : "hidden"} md:flex flex-1 min-h-0`}>
-          <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged} onEditCell={s.editCell} />
+          <DocPreview structure={s.structure} valueMap={s.valueMap} lastChanged={s.lastChanged} filledRefs={s.filledRefs} onEditCell={s.editCell} />
         </div>
       </div>
 
