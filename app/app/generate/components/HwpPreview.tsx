@@ -20,11 +20,22 @@ async function getRhwp() {
       }
       return mod;
     })();
+    // init 실패가 영구 캐시되지 않도록(재시도 허용) 거부 시 싱글톤 리셋
+    rhwpPromise.catch(() => { rhwpPromise = null; });
   }
   return rhwpPromise;
 }
 
-export function HwpPreview({ bytes, onError }: { bytes: Uint8Array; onError?: () => void }) {
+// rhwp 가 만든 SVG 를 innerHTML 주입 전 방어적으로 살균 (이벤트 핸들러/script/javascript:)
+function sanitizeSvg(svg: string): string {
+  return svg
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+}
+
+export function HwpPreview({ bytes }: { bytes: Uint8Array }) {
   const [pages, setPages] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const reqId = useRef(0);
@@ -36,26 +47,27 @@ export function HwpPreview({ bytes, onError }: { bytes: Uint8Array; onError?: ()
     (async () => {
       try {
         const mod = await getRhwp();
-        // bytes 는 SharedArrayBuffer 회피 위해 복사본 전달
+        // bytes 복사본 전달(detached/shared 회피)
         const doc = new mod.HwpDocument(new Uint8Array(bytes));
-        const n = Math.max(1, doc.pageCount());
-        const svgs: string[] = [];
-        for (let i = 0; i < n; i++) svgs.push(doc.renderPageSvg(i));
-        if (id === reqId.current) setPages(svgs);
-      } catch (e) {
-        if (id === reqId.current) {
-          setError(e instanceof Error ? e.message : String(e));
-          onError?.();
+        try {
+          const n = Math.max(1, doc.pageCount());
+          const svgs: string[] = [];
+          for (let i = 0; i < n; i++) svgs.push(sanitizeSvg(doc.renderPageSvg(i)));
+          if (id === reqId.current) setPages(svgs);
+        } finally {
+          doc.free(); // WASM 선형메모리 해제 (누수 방지)
         }
+      } catch (e) {
+        if (id === reqId.current) setError(e instanceof Error ? e.message : String(e));
       }
     })();
-  }, [bytes, onError]);
+  }, [bytes]);
 
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-center">
         <div className="text-sm text-[#9aa1ad]">
-          원문 렌더링에 실패했어요.<br />아래 <b>칸 편집</b> 보기로 확인해 주세요.
+          원문 렌더링에 실패했어요.<br />위의 <b>✏️ 칸 편집</b> 보기로 확인해 주세요.
           <div className="text-[10px] mt-2 opacity-70">{error.slice(0, 120)}</div>
         </div>
       </div>
