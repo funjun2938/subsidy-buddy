@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { runLLM, parseJsonLoose } from "@/lib/llm";
 import { filterChanges, type CellChange } from "@/lib/doc-structure";
+import { isPlaceholderValue } from "@/lib/fill-core";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -37,7 +38,14 @@ export async function POST(request: NextRequest) {
 }
 
 function buildCommandPrompt(fillable: FillableCell[], valueMap: Record<string, string>, command: string, bizInfo: string): string {
-  const rows = fillable.map(f => `- ref=${f.ref} | 라벨=${f.label} | 현재값=${valueMap[f.ref] ?? f.value ?? ""}`).join("\n");
+  const rows = fillable.map(f => {
+    const cur = valueMap[f.ref] ?? f.value ?? "";
+    // 현재값이 작성 예시/안내(플레이스홀더)면 빈칸으로 표시하고 예시를 형식 힌트로 제공
+    const shown = isPlaceholderValue(cur)
+      ? (cur.trim() ? `(빈칸·작성예시: "${cur.trim()}")` : "(빈칸)")
+      : `"${cur}"`;
+    return `- ref=${f.ref} | 라벨=${f.label} | 현재값=${shown}`;
+  }).join("\n");
   return `너는 정부 지원사업 신청서를 채우는 도우미다. 아래 채울 수 있는 칸 목록과 사용자 명령을 보고,
 어떤 칸(ref)에 어떤 값을 넣을지 정해라.
 
@@ -47,7 +55,8 @@ function buildCommandPrompt(fillable: FillableCell[], valueMap: Record<string, s
 3. 양식·칸 구조는 절대 바꾸지 말고 값만 채운다.
 4. 명령이 단일 칸이면 1개, "다 채워줘"면 근거 있는 칸만 여러 개. 비우라면 value:"".
 5. 사업정보에 근거 없는 값은 추측하지 말고 changes 에서 제외.
-6. JSON 외 텍스트(백틱 포함) 금지.
+6. **현재값=(빈칸·작성예시: "...") 인 칸은 실제 값이 아니라 "이렇게 쓰라"는 예시/안내다. 그 예시의 형식을 규칙으로 삼아 실제 값으로 덮어써라**(예: 주소칸 예시 "시군 읍.면.동 도로명 건물번호(행정리)" → 실제 주소를 그 형식대로 입력). 예시 텍스트를 그대로 두지 말 것.
+7. JSON 외 텍스트(백틱 포함) 금지.
 
 [채울 수 있는 칸]
 ${rows}

@@ -27,6 +27,21 @@ function looksLikeLabel(text: string): boolean {
   return true;
 }
 
+// 칸의 현재 텍스트가 '실제 값'이 아니라 '작성 예시/안내/플레이스홀더'인지 판별.
+// 이런 칸은 빈칸처럼 취급해 타깃으로 잡고, 예시 형식을 참고해 실제 값으로 덮어쓴다.
+export function isPlaceholderValue(text: string): boolean {
+  const t = (text || "").trim();
+  if (!t) return true;
+  if (t.length > 60) return false; // 너무 길면 실제 내용일 가능성
+  if (/^[\s\-–—－~·.,'"]+$/.test(t)) return true;                          // 대시/구두점만
+  if (/^[\sㅇ○◯oOxX□◻▢●◇*＊·•]+$/.test(t)) return true;             // ㅇㅇ/○○/XX/□□ 등 반복 기호
+  if (/^\(?\s*(인|날인|서명|서명\s*또는\s*인)\s*\)?$/.test(t)) return true; // (인)/서명 또는 인
+  if (/예\s*\(\s*\)\s*[,·/]?\s*아니[오요]\s*\(\s*\)/.test(t)) return true;  // 예( ), 아니오( ) 체크박스
+  // 작성 예시/형식 안내 마커
+  if (/\(\s*행정리\s*\)|읍\s*[.·]?\s*면\s*[.·]?\s*동|도로명\s*건물번호|\(\s*예\s*[:：]|예\s*[:：]\s*\S|기재\s*하?세요|입력\s*하?세요|작성\s*예시|예시\s*[:：]/.test(t)) return true;
+  return false;
+}
+
 class LabelResolver {
   private exact = new Map<string, string>();
   readonly fields = LABEL_MAP;
@@ -87,7 +102,8 @@ function pickTarget(table: FormTable, labelCell: FormCell, resolver: LabelResolv
     // 값칸이 아니라 '또 다른 라벨'(성명/주민번호 등 알려진 라벨)인 비어있지 않은 칸은 타깃 제외.
     // → "신청인" 우측의 "성 명" 같은 라벨칸에 값이 잘못 채워지는 문제 방지.
     if (t && resolver.resolve(t) !== null) return;
-    candidates.push({ base, cell, empty: !t });
+    // 작성 예시/플레이스홀더('-', 'ㅇㅇ', '시군 읍.면.동 …(행정리)', '(인)' 등)는 빈칸처럼 취급 → 덮어쓰기 대상
+    candidates.push({ base, cell, empty: !t || isPlaceholderValue(t) });
   };
   const right = table.neighborRight(labelCell);
   add(right, 10);

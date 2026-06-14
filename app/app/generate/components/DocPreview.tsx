@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { DocStructure, ValueMap } from "@/lib/doc-structure";
 import { buildPreviewRows } from "@/lib/preview-grid";
+import { isPlaceholderValue } from "@/lib/fill-core";
 
 export function DocPreview({ structure, valueMap, lastChanged, filledRefs, onEditCell }: {
   structure: DocStructure; valueMap: ValueMap; lastChanged: string[];
@@ -48,7 +49,11 @@ export function DocPreview({ structure, valueMap, lastChanged, filledRefs, onEdi
                               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onEditCell(cell.ref, draft); setEditing(null); } }}
                               className="w-full bg-transparent outline-none resize-none text-[16px] md:text-[12px]" />
                           ) : cell.isFillable
-                            ? (hasValue ? val : <span className="text-[#b0b6c0]">(클릭/명령으로 입력)</span>)
+                            ? (hasValue
+                                ? (!isFilled && isPlaceholderValue(val!)
+                                    ? <span className="text-[#b0b6c0] italic" title="작성 예시 — 실제 값으로 덮어써집니다">{val}</span>
+                                    : val)
+                                : <span className="text-[#b0b6c0]">(클릭/명령으로 입력)</span>)
                             : cell.label}
                         </td>
                       );
