@@ -46,7 +46,12 @@ export function useDocSession() {
     if (!structure) return [];
     const out: { ref: string; label: string; value: string }[] = [];
     for (const t of structure.tables) for (const c of t.cells)
-      if (c.isFillable) out.push({ ref: c.ref, label: c.labelFor || c.label, value: valueMap[c.ref] || "" });
+      if (c.isFillable) {
+        const base = c.labelFor || c.label;
+        // 중복 라벨(신청인/배우자 등)은 그룹명을 붙여 LLM 이 구분하게 한다.
+        const label = c.group ? `${c.group} ${base}` : base;
+        out.push({ ref: c.ref, label, value: valueMap[c.ref] || "" });
+      }
     return out;
   }, [structure, valueMap]);
 

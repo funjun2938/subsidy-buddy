@@ -13,9 +13,13 @@ import type { HwpDocument } from "@rhwp/core";
 import { normalize, isPlaceholderValue } from "./fill-core";
 
 // 채울 라벨→값 쌍 (page 에서 structure+valueMap 으로 만든다).
+// label 은 rhwp 셀 텍스트와 매칭하는 RAW 라벨(그룹 미포함).
+// group 은 한 표에 같은 라벨이 여러 개일 때(신청인/배우자 등) 어느 그룹인지
+// 구분하는 행-그룹 헤더. fill-core.findRowGroup 과 동일 규칙으로 rhwp 그리드에서도 계산해 매칭.
 export interface RhwpFill {
   label: string;
   value: string;
+  group?: string;
 }
 
 // rhwp 셀(평탄화된 표 좌표). cell 은 insertTextInCell 의 cell_idx.
@@ -97,18 +101,49 @@ function pickTarget(table: RTable, label: RCell, used: Set<string>, labelNorms: 
   return pool[0].cell;
 }
 
+// 라벨 셀의 행-그룹 헤더를 찾는다 — fill-core.findRowGroup 과 동일 규칙(rhwp 그리드 좌표 기준).
+//   1) 같은 행 왼쪽(col < labelCol)의 형제 라벨이 아닌 가장 가까운 비어있지 않은 셀.
+//   2) 없으면 위 행들에서 col ≤ labelCol 의 최좌측 비형제 비어있지 않은 셀(rowspan 그룹 헤더).
+// skipNorms: 형제 라벨(채울 라벨)의 normalize 집합 — 그룹 헤더가 아닌 라벨을 건너뛴다.
+function rowGroupOf(table: RTable, label: RCell, skipNorms: Set<string>): string | null {
+  const skip = (t: string) => skipNorms.has(normalize(t));
+  for (let c = label.col - 1; c >= 0; c--) {
+    const t = table.grid.get(rc(label.row, c))?.text.trim();
+    if (t && !skip(t)) return t;
+  }
+  for (let r = label.row - 1; r >= 0; r--) {
+    for (let c = 0; c <= label.col; c++) {
+      const t = table.grid.get(rc(r, c))?.text.trim();
+      if (t && !skip(t)) return t;
+    }
+  }
+  return null;
+}
+
 // 라벨로 rhwp 표/라벨셀을 찾는다. 정규화 완전일치 우선, 없으면 포함(4자↑·50%↑).
 // usedLabels: 이미 소비한 라벨셀(같은 라벨 여러 값이 같은 칸을 가리키지 않게).
-function findLabelCell(tables: RTable[], label: string, usedLabels: Set<string>): { table: RTable; cell: RCell } | null {
+// group: 지정 시, 완전일치 후보 중 행-그룹이 group 과 일치하는 셀을 우선 선택
+//        (신청인/배우자처럼 같은 라벨이 여러 그룹에 있을 때 올바른 칸을 고른다).
+function findLabelCell(tables: RTable[], label: string, group: string | undefined, usedLabels: Set<string>, skipNorms: Set<string>): { table: RTable; cell: RCell } | null {
   const norm = normalize(label);
   if (!norm) return null;
+  const groupNorm = group ? normalize(group) : null;
+  let exactFallback: { table: RTable; cell: RCell } | null = null;
   let partial: { table: RTable; cell: RCell } | null = null;
   for (const table of tables) {
     for (const cell of table.cells) {
       if (cell.row < 0 || cell.col < 0 || usedLabels.has(cell.uid)) continue;
       const cn = normalize(cell.text);
       if (!cn) continue;
-      if (cn === norm) return { table, cell };
+      if (cn === norm) {
+        // 그룹 지정이 없으면 첫 완전일치 즉시 채택(기존 동작).
+        if (!groupNorm) return { table, cell };
+        // 그룹 지정 시 행-그룹이 일치하는 셀을 우선.
+        const g = rowGroupOf(table, cell, skipNorms);
+        if (g && normalize(g) === groupNorm) return { table, cell };
+        if (!exactFallback) exactFallback = { table, cell };
+        continue;
+      }
       if (!partial && norm.length >= 4 && cn.length >= 4) {
         const shorter = norm.length <= cn.length ? norm : cn;
         const longer = norm.length <= cn.length ? cn : norm;
@@ -118,7 +153,8 @@ function findLabelCell(tables: RTable[], label: string, usedLabels: Set<string>)
       }
     }
   }
-  return partial;
+  // 그룹 일치 셀이 없으면 완전일치 폴백, 그 다음 부분일치.
+  return exactFallback ?? partial;
 }
 
 // fills 를 rhwp 문서에 직접 적용한다(in place). 적용된 칸 수 반환.
@@ -127,13 +163,18 @@ export function applyFillsToRhwp(doc: HwpDocument, fills: RhwpFill[]): number {
   const tables = enumerateTables(doc);
   if (tables.length === 0) return 0;
   const labelNorms = new Set(fills.map((f) => normalize(f.label)).filter(Boolean));
+  // 중복(=구분 대상) 라벨 norm 집합 — 그룹 헤더 탐색 시 형제 필드 라벨을 건너뛰기 위함.
+  const dupCounts = new Map<string, number>();
+  for (const f of fills) { const n = normalize(f.label); if (n) dupCounts.set(n, (dupCounts.get(n) ?? 0) + 1); }
+  const dupNorms = new Set<string>();
+  for (const [n, cnt] of dupCounts) if (cnt >= 2) dupNorms.add(n);
   const usedTargets = new Set<string>(); // 타깃 셀 uid (표 전역 유일)
   const usedLabels = new Set<string>();   // 라벨 셀 uid (같은 라벨 중복 매칭 방지)
   let applied = 0;
 
-  for (const { label, value } of fills) {
+  for (const { label, value, group } of fills) {
     if (!value || !value.trim()) continue;
-    const hit = findLabelCell(tables, label, usedLabels);
+    const hit = findLabelCell(tables, label, group, usedLabels, dupNorms);
     if (!hit) continue;
     const target = pickTarget(hit.table, hit.cell, usedTargets, labelNorms);
     if (!target) continue;

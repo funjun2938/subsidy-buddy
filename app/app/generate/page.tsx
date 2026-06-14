@@ -32,12 +32,13 @@ export default function StudioPage() {
   // 칸편집 값과 항상 일치하게 한다(hwpilot export 라운드트립 제거 → 500 폴백 버그 해소).
   const fills = useMemo(() => {
     if (!s.structure) return [];
-    const out: { label: string; value: string }[] = [];
+    // label 은 rhwp 셀 텍스트와 매칭하는 RAW 라벨(그룹 미포함), group 은 중복 분해용.
+    const out: { label: string; value: string; group?: string }[] = [];
     for (const t of s.structure.tables) for (const c of t.cells) {
       if (!c.isFillable) continue;
       const value = s.valueMap[c.ref];
       if (!value || !value.trim()) continue;
-      out.push({ label: c.labelFor || c.label, value });
+      out.push({ label: c.labelFor || c.label, value, group: c.group });
     }
     return out;
   }, [s.structure, s.valueMap]);

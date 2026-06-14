@@ -117,6 +117,42 @@ function pickTarget(table: FormTable, labelCell: FormCell, resolver: LabelResolv
   return pool[0].cell;
 }
 
+// ── 행-그룹 헤더 탐지 (중복 라벨 분해용) ─────────────────────────────────────
+//
+// 한 표에 "성 명" 같은 라벨이 두 번 이상 나오면(신청인/배우자 등) LLM 이
+// 어느 그룹인지 구분 못 해 엉뚱한 칸을 채운다. 라벨 셀의 행-그룹 헤더
+// (왼쪽 또는 위쪽의 그룹명)를 찾아 "신청인 성명" 처럼 구분자를 붙인다.
+//
+// hwpilot 그리드는 병합을 1×1 로 평탄화한다(rowspan 그룹 라벨은 그룹 첫 행에만
+// 존재하고, 덮인 행에는 그 열의 셀이 아예 없음 — 실측 확인). 그래서:
+//   1) 같은 행에서 왼쪽(col < labelCol)으로 가장 가까운 비어있지 않은 셀.
+//   2) 같은 행에 왼쪽 셀이 없으면(라벨이 그 행의 최좌측), 위 행들을 훑어
+//      col ≤ labelCol 범위에서 가장 왼쪽의 비어있지 않은 셀(=rowspan 으로
+//      이 행을 덮는 그룹 헤더)을 찾는다.
+// rhwp 미리보기 그리드(진짜 col)와 hwpilot 어댑터 그리드(배열 인덱스 col)는
+// col 좌표가 다르지만, 이 규칙은 각 그리드의 좌표만으로 같은 그룹명을 산출한다.
+//
+// skipNorms: 형제 라벨(다른 채울 라벨)의 normalize 집합. 그룹 헤더가 아니라
+//   옆/위의 또 다른 라벨("주민번호" 옆의 "성명" 등)을 그룹으로 잘못 잡지 않도록
+//   건너뛴다. 진짜 그룹 헤더(신청인/배우자)는 채울 라벨이 아니므로 skip 안 됨.
+export function findRowGroup(table: FormTable, labelCell: FormCell, skipNorms?: Set<string>): string | null {
+  const skip = (t: string) => !!skipNorms && skipNorms.has(normalize(t));
+  const row = labelCell.row, col = labelCell.col;
+  // 1) 같은 행 왼쪽 — 형제 라벨은 건너뛰고 그룹 헤더를 찾는다.
+  for (let c = col - 1; c >= 0; c--) {
+    const t = table.cellAt(row, c)?.text.trim();
+    if (t && !skip(t)) return t;
+  }
+  // 2) 위 행들에서 col ≤ labelCol 의 최좌측 비형제 비어있지 않은 셀(rowspan 그룹 헤더).
+  for (let r = row - 1; r >= 0; r--) {
+    for (let c = 0; c <= col; c++) {
+      const t = table.cellAt(r, c)?.text.trim();
+      if (t && !skip(t)) return t;
+    }
+  }
+  return null;
+}
+
 // ── 라벨→타깃셀 탐지 (구조 빌더와 fillForm 공유) ──────────────────────────────
 
 export interface LabelTarget {
@@ -124,6 +160,8 @@ export interface LabelTarget {
   targetCell: FormCell;
   label: string;
   fieldKey: string | null;
+  /** 중복 라벨 구분용 행-그룹 헤더(예: "신청인"/"배우자"). 구분 불필요 시 undefined */
+  group?: string;
 }
 
 export function findLabelTargets(doc: FormDoc): LabelTarget[] {
@@ -142,7 +180,36 @@ export function findLabelTargets(doc: FormDoc): LabelTarget[] {
       out.push({ labelCell: cell, targetCell: target, label: text, fieldKey });
     }
   }
+  // 같은 표 안에서 라벨 텍스트가 중복되는 경우에만 그룹 구분자를 붙인다.
+  // (유일한 라벨엔 노이즈를 주지 않음 — 예: "임야소재지" 단독은 그대로.)
+  const byTable = new Map<FormTable, LabelTarget[]>();
+  for (const lt of out) {
+    const tbl = tableOf(doc, lt.labelCell);
+    if (!tbl) continue;
+    (byTable.get(tbl) ?? byTable.set(tbl, []).get(tbl)!).push(lt);
+  }
+  for (const [table, items] of byTable) {
+    const counts = new Map<string, number>();
+    for (const it of items) counts.set(normalize(it.label), (counts.get(normalize(it.label)) ?? 0) + 1);
+    // 건너뛸 형제 라벨 = 표 안에서 중복되는(=구분 대상) 필드 라벨들.
+    // (신청인/배우자 같은 유일한 그룹 헤더는 건너뛰지 않아 그룹명으로 잡힌다.)
+    const skipNorms = new Set<string>();
+    for (const [n, cnt] of counts) if (cnt >= 2) skipNorms.add(n);
+    for (const it of items) {
+      if ((counts.get(normalize(it.label)) ?? 0) < 2) continue; // 중복 라벨만
+      const group = findRowGroup(table, it.labelCell, skipNorms);
+      if (group && normalize(group) !== normalize(it.label)) it.group = group;
+    }
+  }
   return out;
+}
+
+// labelCell 이 속한 표를 찾는다(셀 동일성 기반).
+function tableOf(doc: FormDoc, cell: FormCell): FormTable | null {
+  for (const table of doc.allTables()) {
+    if (table.cells.includes(cell)) return table;
+  }
+  return null;
 }
 
 // ── 메인 ──────────────────────────────────────────────────────────────────────
