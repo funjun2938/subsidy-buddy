@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 // 지원사업별 필수 포함 정보 체크리스트
 export const GRANT_CHECKLISTS: Record<string, { name: string; items: { id: string; label: string; desc: string }[] }> = {
   "예비창업패키지": {

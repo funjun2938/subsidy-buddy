@@ -4,6 +4,19 @@ import type { DocStructure, ValueMap, CellChange } from "@/lib/doc-structure";
 
 export interface ChatMessage { role: "user" | "assistant"; text: string; }
 
+// 비정상 응답에서 에러 메시지를 안전하게 추출 (JSON/텍스트 모두 대응)
+async function readError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.clone().json();
+    if (data?.error) return data.error;
+  } catch { /* JSON 아님 → 텍스트 시도 */ }
+  try {
+    const text = (await res.text()).trim();
+    if (text) return text.slice(0, 300);
+  } catch { /* 무시 */ }
+  return fallback;
+}
+
 export function useDocSession() {
   const [file, setFile] = useState<File | null>(null);
   const [structure, setStructure] = useState<DocStructure | null>(null);
@@ -22,8 +35,8 @@ export function useDocSession() {
     try {
       const fd = new FormData(); fd.append("file", f);
       const res = await fetch("/api/doc/open", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await readError(res, "열기 실패"));
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "열기 실패");
       setFile(f); setStructure(data.structure); setValueMap(data.initialValues || {});
       setMessages([{ role: "assistant", text: "양식을 불러왔어요. 채울 내용을 말해주세요. 예) ‘대표자를 홍길동으로’, ‘사업정보 보고 다 채워줘’" }]);
     } catch (e) { setMessages(m => [...m, { role: "assistant", text: `오류: ${e instanceof Error ? e.message : e}` }]); }
@@ -61,9 +74,9 @@ export function useDocSession() {
     try {
       const res = await fetch("/api/doc/command", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fillable: fillableList(), valueMap, command, bizInfo }) });
+      if (!res.ok) throw new Error(await readError(res, "명령 실패"));
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "명령 실패");
-      if (typeof data.tokensUsed === "number") onUsage?.(data.tokensUsed); // 실제 토큰 사용량 차감
+      if (typeof data.tokensUsed === "number") onUsage?.(data.tokensUsed); // 실제 토큰 사용량 차감 (성공 시에만)
       if (Array.isArray(data.changes) && data.changes.length) applyChanges(data.changes);
       setMessages(m => [...m, { role: "assistant", text: data.reply || "완료" }]);
     } catch (e) { setMessages(m => [...m, { role: "assistant", text: `오류: ${e instanceof Error ? e.message : e}` }]); }

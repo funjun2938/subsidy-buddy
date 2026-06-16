@@ -1,8 +1,12 @@
-// Toss 위젯 전용 테스트 시크릿 키 (test_gsk_*)
-const TOSS_SECRET_KEY =
-  process.env.TOSS_SECRET_KEY ?? "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6";
+import { getPlan } from "@/lib/payment-plans";
 
 export async function POST(request: Request) {
+  const secretKey = process.env.TOSS_SECRET_KEY;
+  if (!secretKey) {
+    console.error("[payments/confirm] TOSS_SECRET_KEY 미설정");
+    return Response.json({ ok: false, error: "결제 설정 오류" }, { status: 500 });
+  }
+
   let body: { paymentKey?: string; orderId?: string; amount?: number };
   try {
     body = await request.json();
@@ -21,7 +25,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const auth = Buffer.from(`${TOSS_SECRET_KEY}:`).toString("base64");
+  // orderId(order_{planId}_...)에서 플랜을 파싱해 금액을 서버에서 검증한다.
+  const planId = orderId.split("_")[1];
+  const plan = getPlan(planId);
+  if (!plan || !Number.isFinite(amount) || amount <= 0 || amount !== plan.price) {
+    return Response.json(
+      { ok: false, error: "결제 금액이 올바르지 않습니다." },
+      { status: 400 },
+    );
+  }
+
+  const auth = Buffer.from(`${secretKey}:`).toString("base64");
 
   const tossRes = await fetch(
     "https://api.tosspayments.com/v1/payments/confirm",

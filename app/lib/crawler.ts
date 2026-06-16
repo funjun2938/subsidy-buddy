@@ -24,6 +24,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 크롤링 텍스트의 HTML 엔티티 디코딩 (의존성 없이 직접 처리)
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", apos: "'",
+  nbsp: " ", middot: "·", hellip: "…", ndash: "–", mdash: "—",
+};
+function decodeEntities(s: string): string {
+  return s.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+);/g, (m, code: string) => {
+    if (code[0] === "#") {
+      const cp = code[1] === "x" || code[1] === "X"
+        ? parseInt(code.slice(2), 16)
+        : parseInt(code.slice(1), 10);
+      return Number.isNaN(cp) ? m : String.fromCodePoint(cp);
+    }
+    return NAMED_ENTITIES[code] ?? m;
+  });
+}
+
 /**
  * fetch with exponential-backoff retry for transient failures.
  * 외부 공공 API(기업마당)가 간헐적으로 5xx/네트워크 오류를 내는 경우를 흡수한다.
@@ -126,11 +143,12 @@ function parseBizInfoItem(item: BizInfoItem, idx: number): Grant {
   const region = guessRegion(item.pblancNm || "", item.hashtags || "");
 
   const rawDesc = String(item.bsnsSumryCn || "");
-  const description = rawDesc
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 300) || "상세 내용은 공고 원문을 확인하세요.";
+  const description = decodeEntities(
+    rawDesc
+      .replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  ).slice(0, 300) || "상세 내용은 공고 원문을 확인하세요.";
 
   const url =
     item.pblancUrl ||
@@ -150,7 +168,7 @@ function parseBizInfoItem(item: BizInfoItem, idx: number): Grant {
     amount: guessAmount(rawDesc, item.pblancNm || "", item.hashtags || ""),
     deadline,
     description,
-    requirements: item.trgetNm || "공고 원문 참조",
+    requirements: decodeEntities(String(item.trgetNm || "")) || "공고 원문 참조",
     url,
   };
 }
