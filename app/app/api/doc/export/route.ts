@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     headers.set("X-Doc-Format", ext);
     return new Response(new Uint8Array(filled), { status: 200, headers });
   } catch (e) {
-    return Response.json({ error: "양식 채우기 실패", detail: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    console.error("[doc/export] 양식 변환 실패:", e);
+    return Response.json({ error: "양식 변환에 실패했어요. HWPX 저장을 이용해 주세요." }, { status: 500 });
   }
 }

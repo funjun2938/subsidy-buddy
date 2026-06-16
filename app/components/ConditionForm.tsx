@@ -133,6 +133,11 @@ export default function ConditionForm() {
       }
 
       const res = await fetch("/api/analyze-doc", { method: "POST", body: fd });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        setAnalyzeError(e.error || "분석에 실패했습니다. 다시 시도해 주세요.");
+        return;
+      }
       const data = await res.json();
       if (data.result) {
         const r = data.result as AnalyzedResult;

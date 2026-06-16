@@ -3,6 +3,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
 import { scrapeGrantDetails } from "@/lib/grant-scraper";
 
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
 // ── 지원사업별 제출 양식 (실제 공고에서 요구하는 문서 + 항목) ──
 
 interface DocTemplate {

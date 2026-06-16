@@ -4,9 +4,14 @@ import { getAllGrants } from "@/lib/grants-store";
 import { UserCondition } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
+  let body: UserCondition;
   try {
-    const body: UserCondition = await request.json();
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "잘못된 요청입니다." }, { status: 400 });
+  }
 
+  try {
     if (
       !body.bizType ||
       !body.revenue ||

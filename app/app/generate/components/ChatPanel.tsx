@@ -41,7 +41,10 @@ export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo,
         </span>
         <div className="flex gap-1.5 shrink-0">
           <button onClick={onUndo} disabled={!canUndo} className="text-[11px] px-2 py-1 rounded bg-white border border-[#d6dae1] disabled:opacity-40">되돌리기</button>
-          <button onClick={onExport} className="text-[11px] px-2 py-1 rounded bg-white border border-[#d6dae1] text-[#2d6cf6] font-semibold">한글</button>
+          {/* .hwp 변환은 실패 가능성이 높아 .hwpx 양식에서만 '한글' 버튼 노출 */}
+          {structure.format !== "hwp" && (
+            <button onClick={onExport} className="text-[11px] px-2 py-1 rounded bg-white border border-[#d6dae1] text-[#2d6cf6] font-semibold">한글</button>
+          )}
           {onExportHwpx && <button onClick={onExportHwpx} className="text-[11px] px-2.5 py-1 rounded bg-[#2d6cf6] text-white font-semibold">HWPX 저장</button>}
         </div>
       </div>
