@@ -68,35 +68,53 @@ export default function HeaderNav({ email, isLoggedIn = false }: { email: string
         </button>
       </div>
 
-      {/* 모바일 드롭다운 */}
-      {open && (
-        <>
-          {/* 바깥 클릭으로 닫기 */}
+      {/* 모바일 사이드 드로어 */}
+      {/* 배경 딤 (열렸을 때만, 페이드) */}
+      <button
+        type="button"
+        aria-hidden
+        tabIndex={-1}
+        onClick={() => setOpen(false)}
+        className={`fixed inset-0 z-40 md:hidden bg-black/50 backdrop-blur-sm transition-opacity duration-200 cursor-default ${
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      />
+      {/* 우측에서 슬라이드되는 드로어 — 불투명 배경(글자 비침 방지) */}
+      <aside
+        aria-hidden={!open}
+        className={`fixed top-0 right-0 z-50 md:hidden h-full w-72 max-w-[82%] shadow-2xl border-l border-black/10 transition-transform duration-200 ease-out ${
+          open ? "translate-x-0" : "translate-x-full pointer-events-none"
+        }`}
+        style={{ background: "var(--background)" }}
+      >
+        <div className="flex items-center justify-between px-5 h-16 border-b border-black/10">
+          <span className="font-bold tracking-tight text-sm">메뉴</span>
           <button
             type="button"
-            aria-hidden
-            tabIndex={-1}
             onClick={() => setOpen(false)}
-            className="fixed inset-0 z-40 md:hidden cursor-default"
-          />
-          <div className="absolute left-0 right-0 top-full z-50 md:hidden glass border-t border-black/5 shadow-lg">
-            <nav className="max-w-5xl mx-auto px-5 py-3 flex flex-col gap-1">
-              {LINKS.map((l) => (
-                <Link key={l.href} href={l.href} className={linkCls}>
-                  {l.label}
-                </Link>
-              ))}
-              <FavoritesNav />
-              <Link href="/pricing" className={priceCls}>
-                요금제
-              </Link>
-              <div className="pt-2 mt-1 border-t border-black/5 flex flex-col gap-1">
-                <AuthNav email={email} />
-              </div>
-            </nav>
+            aria-label="메뉴 닫기"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-black/5 transition"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <nav className="px-4 py-4 flex flex-col gap-1 overflow-y-auto">
+          {LINKS.map((l) => (
+            <Link key={l.href} href={l.href} className={linkCls}>
+              {l.label}
+            </Link>
+          ))}
+          <FavoritesNav />
+          <Link href="/pricing" className={priceCls}>
+            요금제
+          </Link>
+          <div className="pt-3 mt-2 border-t border-black/10 flex flex-col gap-1">
+            <AuthNav email={email} />
           </div>
-        </>
-      )}
+        </nav>
+      </aside>
     </>
   );
 }
