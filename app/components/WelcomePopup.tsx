@@ -34,14 +34,14 @@ export default function WelcomePopup() {
         </button>
 
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center mb-5 shadow-lg shadow-cyan-500/20">
-          <span className="text-white font-black text-xl">B</span>
+          <span className="text-white font-black text-xl">R</span>
         </div>
 
         <h2 className="text-2xl font-black mb-2">
-          보조금매칭 <span className="gradient-text">AI</span>에 오신 걸 환영합니다
+          <span className="gradient-text">리스탠드</span>에 오신 걸 환영합니다
         </h2>
         <p className="text-gray-400 text-sm leading-relaxed mb-6">
-          내 사업에 딱 맞는 정부 지원금을 AI가 30초 만에 찾아드립니다.
+          소상공인을 위한 정부 지원금 — 사업자등록증 한 장이면 AI가 30초 만에 찾아드립니다.
         </p>
 
         <ul className="space-y-3 mb-7">

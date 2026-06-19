@@ -13,9 +13,9 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "보조금매칭AI — AI가 찾아주는 나의 정부 지원금",
+  title: "리스탠드 — 소상공인이 다시 일어서는 AI 정부지원금",
   description:
-    "사업자등록증만 올리면 AI가 사업 정보를 분석하고 맞춤 정부 지원금을 자동 매칭해드립니다.",
+    "소상공인을 위한 AI 정부지원금. 사업자등록증 한 장이면 AI가 사업 정보를 분석해 맞춤 지원사업을 자동 매칭하고, 공식 서식까지 작성해드립니다.",
 };
 
 export default function RootLayout({

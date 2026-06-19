@@ -13,11 +13,11 @@ export default async function Header() {
       <div className="w-full px-4 sm:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow">
-            <span className="text-white font-black text-sm">B</span>
+            <span className="text-white font-black text-sm">R</span>
             <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--background)]" />
           </div>
           <div>
-            <span className="font-bold tracking-tight">보조금매칭</span>
+            <span className="font-bold tracking-tight">리스탠드</span>
             <span className="text-[10px] ml-1 px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 font-semibold">AI</span>
           </div>
         </Link>

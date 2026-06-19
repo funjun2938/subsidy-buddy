@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침 | 보조금매칭AI",
-  description: "보조금매칭AI 개인정보 수집 및 처리 방침",
+  title: "개인정보처리방침 | 리스탠드",
+  description: "리스탠드 개인정보 수집 및 처리 방침",
 };
 
 export default function PrivacyPage() {

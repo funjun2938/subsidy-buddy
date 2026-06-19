@@ -35,15 +35,15 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
               <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <span className="text-white font-black text-xs">B</span>
+                <span className="text-white font-black text-xs">R</span>
               </div>
               <div>
-                <span className="font-bold text-sm tracking-tight text-[var(--foreground)]">보조금매칭</span>
+                <span className="font-bold text-sm tracking-tight text-[var(--foreground)]">리스탠드</span>
                 <span className="text-[9px] ml-1 px-1 py-0.5 rounded bg-cyan-500/10 text-cyan-500 font-semibold">AI</span>
               </div>
             </Link>
             <p className="mt-4 text-xs leading-relaxed text-[var(--muted)]">
-              사업자등록증 한 장으로 정부 지원금을 자동 매칭합니다.
+              소상공인을 위한 정부 지원금 — 사업자등록증 한 장으로 자동 매칭합니다.
             </p>
             <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -100,10 +100,10 @@ export default function Footer() {
         {/* Bottom */}
         <div className="border-t border-[var(--footer-border)] pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <p className="text-[10px] text-[var(--muted)] leading-relaxed max-w-2xl">
-            AI 분석 결과는 참고용이며 실제 자격 요건과 합격 여부는 공고 원문과 소관 부처를 통해 확인하세요. 보조금매칭AI는 정부기관과 제휴된 서비스가 아닙니다.
+            AI 분석 결과는 참고용이며 실제 자격 요건과 합격 여부는 공고 원문과 소관 부처를 통해 확인하세요. 리스탠드는 정부기관과 제휴된 서비스가 아닙니다.
           </p>
           <p className="text-[10px] text-[var(--muted)] whitespace-nowrap">
-            © {currentYear} 보조금매칭AI · Built with Next.js + Gemini · MIT
+            © {currentYear} 리스탠드 · Built with Next.js + Gemini · MIT
           </p>
         </div>
       </div>

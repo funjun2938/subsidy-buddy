@@ -155,9 +155,9 @@ describe("Footer — Data Sources 섹션", () => {
 });
 
 describe("Footer — 브랜드", () => {
-  it("브랜드 이름 '보조금매칭AI'", () => {
+  it("브랜드 이름 '리스탠드'", () => {
     render(<Footer />);
-    expect(screen.getByText(/보조금매칭AI/)).toBeInTheDocument();
+    expect(screen.getAllByText(/리스탠드/).length).toBeGreaterThan(0);
   });
 
   it("브랜드 카피 'AI 분석 결과는 참고용이며'", () => {

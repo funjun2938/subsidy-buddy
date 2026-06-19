@@ -17,7 +17,7 @@ export default function Home() {
         <div className="relative max-w-3xl mx-auto px-5 pt-14 sm:pt-28 pb-12 sm:pb-16 text-center">
           <div className="reveal inline-flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full glass text-[11px] sm:text-xs text-[var(--muted)] mb-6" style={{ animationDelay: "0ms" }}>
             <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-[8px]">✦</span>
-            AI 정부지원금 어시스턴트
+            소상공인을 위한 AI 정부지원금 어시스턴트
           </div>
 
           <h1 className="reveal text-[32px] sm:text-[60px] font-black tracking-[-0.03em] leading-[1.08] text-balance mb-5 text-[var(--foreground)]" style={{ animationDelay: "70ms" }}>
@@ -27,7 +27,7 @@ export default function Home() {
           </h1>
 
           <p className="reveal text-sm sm:text-lg text-[var(--muted)] max-w-md mx-auto mb-9 leading-relaxed text-balance" style={{ animationDelay: "140ms" }}>
-            사업자등록증 한 장이면 30초 만에 끝.
+            다시 일어서는 소상공인을 위해 — 사업자등록증 한 장이면 30초 만에 끝.
           </p>
 
           <div className="reveal flex flex-col sm:flex-row justify-center gap-2.5 mb-5" style={{ animationDelay: "210ms" }}>
@@ -49,7 +49,7 @@ export default function Home() {
           {/* Stats — compact glass strip */}
           <div className="reveal inline-flex items-center px-2 py-2.5 rounded-full glass" style={{ animationDelay: "320ms" }}>
             {[
-              { val: "500+", label: "지원사업" },
+              { val: "1,400+", label: "지원사업" },
               { val: "30초", label: "AI 매칭" },
               { val: "무료", label: "기본 이용" },
             ].map((s, i) => (
