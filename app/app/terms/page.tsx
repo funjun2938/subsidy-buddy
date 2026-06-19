@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "이용약관 | 보조금매칭AI",
-  description: "보조금매칭AI 서비스 이용약관",
+  title: "이용약관 | 리스탠드",
+  description: "리스탠드 서비스 이용약관",
 };
 
 export default function TermsPage() {
@@ -22,7 +22,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-base font-bold text-white mb-3">제1조 (목적)</h2>
           <p>
-            본 약관은 보조금매칭AI(이하 &quot;서비스&quot;)가 제공하는 정부
+            본 약관은 리스탠드(이하 &quot;서비스&quot;)가 제공하는 정부
             지원사업 매칭 및 신청서 생성 서비스의 이용 조건과 절차, 이용자와
             서비스 간의 권리·의무 및 책임 사항을 규정함을 목적으로 합니다.
           </p>

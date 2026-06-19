@@ -2,7 +2,7 @@ import ConditionForm from "@/components/ConditionForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "지원금 찾기 — 보조금매칭AI",
+  title: "지원금 찾기 — 리스탠드",
   description: "사업 정보를 입력하면 AI가 30초 안에 맞춤 정부 지원사업을 찾아드립니다.",
 };
 

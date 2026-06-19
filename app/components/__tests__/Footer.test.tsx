@@ -178,9 +178,9 @@ describe("Footer component", () => {
   });
 
   describe("brand identity", () => {
-    it("renders the brand name '보조금매칭AI'", () => {
+    it("renders the brand name '리스탠드'", () => {
       render(<Footer />);
-      expect(screen.getByText(/보조금매칭AI/)).toBeInTheDocument();
+      expect(screen.getAllByText(/리스탠드/).length).toBeGreaterThan(0);
     });
 
     it("renders the brand tagline", () => {
