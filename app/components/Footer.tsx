@@ -47,7 +47,7 @@ export default function Footer() {
             </p>
             <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] font-semibold text-emerald-500">500+ 공고 실시간 매칭 중</span>
+              <span className="text-[10px] font-semibold text-emerald-500">1,400+ 공고 실시간 매칭 중</span>
             </div>
           </div>
 
