@@ -53,7 +53,7 @@ exports[`Footer component > snapshot > matches snapshot 1`] = `
           <span
             class="text-[10px] font-semibold text-emerald-500"
           >
-            500+ 공고 실시간 매칭 중
+            1,400+ 공고 실시간 매칭 중
           </span>
         </div>
       </div>
