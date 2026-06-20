@@ -234,6 +234,33 @@ export default function ConditionForm() {
 
   return (
     <div>
+      {/* 업종·지역 — 사업자등록증 파싱 전에 '먼저' 선택. 사용자 선택이 OCR 인식값보다 우선. */}
+      <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-violet-500/10 border border-cyan-500/25 shadow-lg shadow-cyan-500/5">
+        <p className="text-sm font-bold text-[var(--foreground)] mb-0.5">먼저, 업종과 지역을 선택하세요</p>
+        <p className="text-[11px] text-[var(--muted)] mb-3 leading-relaxed">
+          직접 선택한 값이 사업자등록증 인식보다 <b className="text-cyan-500">우선 적용</b>돼요.
+          (생산지·영업지·본사가 다르면, 지원금 받고 싶은 기준 지역을 고르세요)
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--foreground)] mb-1.5">업종 <span className="text-cyan-500">*</span></label>
+            <select value={bizType} onChange={(e) => setBizType(e.target.value)} required
+              className={`${selectClass} py-3.5 text-base font-medium`}>
+              <option value="">업종 선택</option>
+              {BIZ_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--foreground)] mb-1.5">지역 <span className="text-cyan-500">*</span></label>
+            <select value={region} onChange={(e) => setRegion(e.target.value)} required
+              className={`${selectClass} py-3.5 text-base font-medium`}>
+              <option value="">지역 선택</option>
+              {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl mb-6 bg-[var(--tab-bg)]">
         {(["ai", "manual"] as Tab[]).map((t) => (
@@ -491,9 +518,8 @@ export default function ConditionForm() {
                     </p>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { label: "업종", value: analyzed.bizType },
+                        // 업종·지역은 상단에서 직접 선택 → OCR 결과에선 표시하지 않음
                         { label: "연 매출", value: analyzed.revenue },
-                        { label: "지역", value: analyzed.region },
                         { label: "업력", value: analyzed.bizAge },
                         { label: "대표 나이", value: analyzed.ceoAge },
                         {
@@ -609,29 +635,10 @@ export default function ConditionForm() {
                 AI가 추출한 정보를 확인하고 필요하면 수정하세요
               </p>
             )}
-            <p className="text-[11px] text-cyan-500/90 bg-cyan-500/5 border border-cyan-500/15 rounded-lg px-3 py-2">
-              ※ <b>업종·지역은 직접 선택한 값이 매칭에 우선</b> 적용됩니다. (사업자등록증 인식값보다 우선 —
-              생산지/영업지 기준으로 받고 싶다면 해당 지역을 골라주세요)
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-[var(--muted)] mb-1">업종</label>
-                <select value={bizType} onChange={(e) => setBizType(e.target.value)} required className={selectClass}>
-                  <option value="">선택</option>
-                  {BIZ_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--muted)] mb-1">연 매출</label>
-                <select value={revenue} onChange={(e) => setRevenue(e.target.value)} required className={selectClass}>
-                  <option value="">선택</option>
-                  {REVENUE_RANGES.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-            </div>
+            {/* 업종·지역은 상단에서 선택 → 여기선 매출·업력·대표자 나이만 */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: "지역", val: region, set: setRegion, opts: REGIONS },
+                { label: "연 매출", val: revenue, set: setRevenue, opts: REVENUE_RANGES },
                 { label: "업력", val: bizAge, set: setBizAge, opts: BIZ_AGES },
                 { label: "대표자 나이", val: ceoAge, set: setCeoAge, opts: CEO_AGES },
               ].map(({ label, val, set, opts }) => (
