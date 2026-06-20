@@ -8,19 +8,50 @@ export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string
   const [mode, setMode] = useState<"upload" | "grant">("upload");
   const [initialPblancId, setInitialPblancId] = useState("");
 
-  // 공고 화면에서 넘어온 경우: URL 쿼리(grantTitle/pblancId/bizInfo/bizType/keywords)를 읽어
-  // 업로드했던 사업정보와 해당 공고를 자동으로 끌어온다. (클라에서만 읽어 hydration 안전)
+  // 공고 화면에서 넘어온 경우: URL 쿼리(grantTitle/pblancId/bizInfo/bizType/keywords) +
+  // 매칭 때 분석·보관한 사업 프로필(sessionStorage)을 읽어, 업로드했던 사업정보와 해당
+  // 공고를 자동으로 끌어온다. 프로필이 있으면 라벨링된 풍부한 정보로 자동 채움 정확도를 높인다.
+  // (클라에서만 읽어 hydration 안전)
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    const bi = sp.get("bizInfo") || "";
-    const bt = sp.get("bizType") || "";
-    const kw = (sp.get("keywords") || "").split(",").map((s) => s.trim()).filter(Boolean);
     const gt = sp.get("grantTitle") || "";
     const pid = sp.get("pblancId") || "";
-    const composed = [bi, bt && `업종: ${bt}`, kw.length ? `키워드: ${kw.join(", ")}` : ""].filter(Boolean).join("\n");
-    if (composed) setBizInfo(composed);
     if (gt) setGrantTitle(gt);
     if (pid) { setInitialPblancId(pid); setMode("grant"); }
+
+    // 1) 분석된 사업 프로필(우선) — 라벨링해 칸 매핑이 잘 되게
+    let composed = "";
+    try {
+      const raw = sessionStorage.getItem("restand.bizProfile");
+      if (raw) {
+        const p = JSON.parse(raw) as Record<string, unknown>;
+        const s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+        const arr = (v: unknown) => (Array.isArray(v) ? v.filter(Boolean) : []);
+        const lines: string[] = [];
+        if (s(p.companyName)) lines.push(`상호명(법인명): ${s(p.companyName)}`);
+        if (s(p.businessNumber)) lines.push(`사업자등록번호: ${s(p.businessNumber)}`);
+        if (s(p.region)) lines.push(`소재지(지역): ${s(p.region)}`);
+        if (s(p.bizType)) lines.push(`업종: ${s(p.bizType)}`);
+        if (s(p.bizAge)) lines.push(`업력: ${s(p.bizAge)}`);
+        if (s(p.revenue)) lines.push(`연매출: ${s(p.revenue)}`);
+        if (s(p.ceoAge)) lines.push(`대표자 연령대: ${s(p.ceoAge)}`);
+        if (s(p.ceoGender)) lines.push(`대표자 성별: ${s(p.ceoGender)}`);
+        if (s(p.employeeCount)) lines.push(`직원 수: ${s(p.employeeCount)}`);
+        if (arr(p.certifications).length) lines.push(`인증/특성: ${arr(p.certifications).join(", ")}`);
+        if (s(p.summary)) lines.push(`사업 개요: ${s(p.summary)}`);
+        if (arr(p.keywords).length) lines.push(`키워드: ${arr(p.keywords).join(", ")}`);
+        composed = lines.join("\n");
+      }
+    } catch { /* sessionStorage 파싱 실패 무시 */ }
+
+    // 2) 프로필이 없으면 URL 쿼리로 폴백
+    if (!composed) {
+      const bi = sp.get("bizInfo") || "";
+      const bt = sp.get("bizType") || "";
+      const kw = (sp.get("keywords") || "").split(",").map((x) => x.trim()).filter(Boolean);
+      composed = [bi, bt && `업종: ${bt}`, kw.length ? `키워드: ${kw.join(", ")}` : ""].filter(Boolean).join("\n");
+    }
+    if (composed) setBizInfo(composed);
   }, []);
 
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
