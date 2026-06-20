@@ -168,7 +168,7 @@ describe("plan id validation — very long strings (DoS)", () => {
 });
 
 describe("plan id validation — happy path baselines", () => {
-  const validIds: PlanId[] = ["premium", "business", "expert"];
+  const validIds: PlanId[] = ["premium", "business"];
 
   it.each(validIds)("'%s' returns a non-null plan", (id) => {
     expect(getPlan(id)).not.toBeNull();

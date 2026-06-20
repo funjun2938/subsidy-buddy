@@ -56,21 +56,9 @@ describe("scenario: user picks business plan", () => {
   });
 });
 
-describe("scenario: user picks expert (one-time)", () => {
-  it("getPlan('expert') returns the expert plan object", () => {
-    const plan = getPlan("expert");
-    expect(plan).not.toBeNull();
-    expect(plan?.id).toBe("expert");
-  });
-
-  it("plan price is 50000 KRW (착수금)", () => {
-    const plan = getPlan("expert")!;
-    expect(plan.price).toBe(50000);
-  });
-
-  it("plan is single-payment type (not subscription)", () => {
-    const plan = getPlan("expert")!;
-    expect(plan.type).toBe("single");
+describe("scenario: removed expert plan", () => {
+  it("getPlan('expert') returns null (plan removed)", () => {
+    expect(getPlan("expert")).toBeNull();
   });
 });
 
@@ -84,6 +72,7 @@ describe("scenario: user manipulates URL with invalid plan", () => {
     "pro",
     "basic",
     "enterprise",
+    "expert",
     "free",
     "0",
     "null",
@@ -137,10 +126,6 @@ describe("scenario: pricing display format", () => {
     expect(plan.price.toLocaleString()).toBe("49,000");
   });
 
-  it("50000 displays as '50,000'", () => {
-    const plan = PLANS.expert;
-    expect(plan.price.toLocaleString()).toBe("50,000");
-  });
 });
 
 describe("scenario: SDK setAmount payload assembly", () => {
@@ -156,11 +141,6 @@ describe("scenario: SDK setAmount payload assembly", () => {
     expect(payload).toEqual({ currency: "KRW", value: 49000 });
   });
 
-  it("expert → { currency: 'KRW', value: 50000 }", () => {
-    const plan = PLANS.expert;
-    const payload = { currency: "KRW", value: plan.price };
-    expect(payload).toEqual({ currency: "KRW", value: 50000 });
-  });
 });
 
 describe("scenario: confirm API request payload", () => {
@@ -189,15 +169,4 @@ describe("scenario: confirm API request payload", () => {
     expect(payload.orderId).toMatch(/^order_business_/);
   });
 
-  it("expert confirm payload", () => {
-    const orderId = generateOrderId("expert");
-    const plan = PLANS.expert;
-    const payload = {
-      paymentKey: "pk_test_demo",
-      orderId,
-      amount: plan.price,
-    };
-    expect(payload.amount).toBe(50000);
-    expect(payload.orderId).toMatch(/^order_expert_/);
-  });
 });

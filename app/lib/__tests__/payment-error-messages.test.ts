@@ -211,7 +211,7 @@ describe("payload validation utilities", () => {
       expect(isValidAmount(49000)).toBe(true);
     });
 
-    it("accepts 50000 (expert)", () => {
+    it("accepts 50000 (large amount)", () => {
       expect(isValidAmount(50000)).toBe(true);
     });
 

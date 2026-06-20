@@ -295,37 +295,25 @@ function Content() {
         >
           공고 원문 보기 →
         </a>
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href={`/generate?${new URLSearchParams({
-              grantTitle: grant.title,
-              // 기업마당 공고 id 는 'biz-PBLN_…' → 'PBLN_…' 로 정규화해 첨부 자동로드에 사용
-              ...(grant.id.startsWith("biz-PBLN_")
-                ? { pblancId: grant.id.slice(4) }
-                : grant.id.startsWith("PBLN_")
-                  ? { pblancId: grant.id }
-                  : {}),
-              ...(sp.get("summary") ? { bizInfo: sp.get("summary")! } : {}),
-              ...(sp.get("bizType") ? { bizType: sp.get("bizType")! } : {}),
-              ...(sp.get("keywords") ? { keywords: sp.get("keywords")! } : {}),
-            }).toString()}`}
-            className="block py-3 text-center glass rounded-xl text-sm font-semibold text-violet-400 hover:bg-violet-500/5 transition"
-          >
-            AI 신청서 생성
-          </Link>
-          <Link
-            href={`/experts?${new URLSearchParams({
-              grantTitle: grant.title,
-              ...(sp.get("summary") ? { summary: sp.get("summary")! } : {}),
-              ...(sp.get("bizType") ? { bizType: sp.get("bizType")! } : {}),
-              ...(sp.get("region") ? { region: sp.get("region")! } : {}),
-              ...(sp.get("keywords") ? { keywords: sp.get("keywords")! } : {}),
-            }).toString()}`}
-            className="block py-3 text-center glass rounded-xl text-sm font-semibold text-pink-400 hover:bg-pink-500/5 transition"
-          >
-            전문가에게 맡기기
-          </Link>
-        </div>
+        <Link
+          href={`/generate?${new URLSearchParams({
+            grantTitle: grant.title,
+            // 기업마당 공고 id 는 'biz-PBLN_…' → 'PBLN_…' 로 정규화해 첨부 자동로드에 사용
+            ...(grant.id.startsWith("biz-PBLN_")
+              ? { pblancId: grant.id.slice(4) }
+              : grant.id.startsWith("PBLN_")
+                ? { pblancId: grant.id }
+                : {}),
+            // 양식이 없을 때 스튜디오에서 공고 원문 링크를 안내하도록 URL 전달
+            grantUrl: getBestUrl(grant),
+            ...(sp.get("summary") ? { bizInfo: sp.get("summary")! } : {}),
+            ...(sp.get("bizType") ? { bizType: sp.get("bizType")! } : {}),
+            ...(sp.get("keywords") ? { keywords: sp.get("keywords")! } : {}),
+          }).toString()}`}
+          className="block w-full py-3 text-center glass rounded-xl text-sm font-semibold text-violet-400 hover:bg-violet-500/5 transition"
+        >
+          AI 신청서 생성
+        </Link>
       </div>
 
       <p className="text-[11px] text-gray-600 mt-8 text-center">

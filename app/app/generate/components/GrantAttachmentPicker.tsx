@@ -25,8 +25,8 @@ const canAutoFill = (ext: string) => ext === "hwp" || ext === "hwpx";
 const toPblancId = (id: string) => (id.startsWith("biz-") ? id.slice(4) : id);
 const isBizInfo = (id: string) => toPblancId(id).startsWith("PBLN_");
 
-export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGrantTitle = "" }:
-  { onPick: (file: File, grantTitle: string) => void; initialPblancId?: string; initialGrantTitle?: string }) {
+export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGrantTitle = "", grantUrl = "" }:
+  { onPick: (file: File, grantTitle: string) => void; initialPblancId?: string; initialGrantTitle?: string; grantUrl?: string }) {
   const [grantTitle, setGrantTitle] = useState(initialGrantTitle);
   const [pblancId, setPblancId] = useState(initialPblancId);
   const [query, setQuery] = useState("");
@@ -35,6 +35,7 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
   const [options, setOptions] = useState<GrantSummary[]>([]);
   const [attachments, setAttachments] = useState<GrantAttachment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadedOnce, setLoadedOnce] = useState(false); // 첨부 로드를 한 번이라도 시도했는지
   const [status, setStatus] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -101,6 +102,7 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
       setStatus(`첨부 로드 오류: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
+      setLoadedOnce(true);
     }
   }, []);
 
@@ -244,6 +246,25 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
           })}
         </div>
       )}
+
+      {/* 자동 작성 가능한 .hwp/.hwpx 양식이 없을 때: 안내 + 공고 원문 링크 */}
+      {!loading && loadedOnce && !attachments.some((a) => canAutoFill(a.ext)) && (() => {
+        const url = grantUrl
+          || (pblancId ? `https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=${pblancId}` : "");
+        return (
+          <div className="rounded-xl p-4 bg-amber-50 border border-amber-200 space-y-2.5">
+            <p className="text-sm text-amber-800 font-medium">신청서 양식이 없습니다</p>
+            <p className="text-[12px] text-amber-700">📭 이 공고에는 자동 작성 가능한 신청서 양식(.hwp/.hwpx)이 없습니다.</p>
+            {url && (
+              <a href={url} target="_blank" rel="noreferrer"
+                className="inline-block px-3 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition">
+                공고 원문 보기 →
+              </a>
+            )}
+            <p className="text-[11px] text-amber-600">위 “📤 양식 직접 업로드”로 직접 양식을 올려 작성할 수도 있습니다.</p>
+          </div>
+        );
+      })()}
 
       {status && <p className="text-[11px] text-gray-500 whitespace-pre-line">{status}</p>}
       {downloading && <p className="text-[11px] text-blue-600">신청서를 가져오는 중…</p>}

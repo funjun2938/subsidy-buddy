@@ -15,7 +15,7 @@ import {
  * 타입스크립트 enum, 그리고 회귀 가드를 추가.
  */
 
-const PLAN_IDS: PlanId[] = ["premium", "business", "expert"];
+const PLAN_IDS: PlanId[] = ["premium", "business"];
 
 describe("PLANS — exhaustive field coverage", () => {
   describe("premium", () => {
@@ -39,8 +39,8 @@ describe("PLANS — exhaustive field coverage", () => {
       expect(plan.features[2]).toContain("월 3건"));
     it("feature[3] mentions 마감 알림", () =>
       expect(plan.features[3]).toContain("마감 알림"));
-    it("feature[4] mentions 전문가 매칭 10% 할인", () =>
-      expect(plan.features[4]).toContain("10% 할인"));
+    it("feature[4] mentions 신규 공고 실시간 알림", () =>
+      expect(plan.features[4]).toContain("실시간 알림"));
   });
 
   describe("business", () => {
@@ -54,41 +54,16 @@ describe("PLANS — exhaustive field coverage", () => {
       expect(plan.type).toBe("subscription"));
     it("description mentions 신청 대행", () =>
       expect(plan.description).toContain("신청 대행"));
-    it("has 5 features", () => expect(plan.features.length).toBe(5));
+    it("has 4 features", () => expect(plan.features.length).toBe(4));
 
     it("includes 프리미엄 전체 기능 포함", () =>
       expect(plan.features.some((f) => f.includes("프리미엄 전체"))).toBe(true));
     it("includes AI 신청서 무제한", () =>
       expect(plan.features.some((f) => f.includes("무제한"))).toBe(true));
-    it("includes 전담 배정", () =>
-      expect(plan.features.some((f) => f.includes("전담"))).toBe(true));
     it("includes 신청 대행 50% 할인", () =>
       expect(plan.features.some((f) => f.includes("50% 할인"))).toBe(true));
     it("includes 합격률 분석 리포트", () =>
       expect(plan.features.some((f) => f.includes("합격률"))).toBe(true));
-  });
-
-  describe("expert", () => {
-    const plan = PLANS.expert;
-
-    it("has id 'expert'", () => expect(plan.id).toBe("expert"));
-    it("has name '전문가 신청 대행'", () =>
-      expect(plan.name).toBe("전문가 신청 대행"));
-    it("has price 50000", () => expect(plan.price).toBe(50000));
-    it("has type 'single' (one-shot, not recurring)", () =>
-      expect(plan.type).toBe("single"));
-    it("description references 착수금", () =>
-      expect(plan.description).toContain("착수금"));
-    it("has 4 features", () => expect(plan.features.length).toBe(4));
-
-    it("includes 1:1 배정", () =>
-      expect(plan.features.some((f) => f.includes("1:1"))).toBe(true));
-    it("includes 서류 검토", () =>
-      expect(plan.features.some((f) => f.includes("서류 검토"))).toBe(true));
-    it("includes 신청서 직접 제출", () =>
-      expect(plan.features.some((f) => f.includes("직접 제출"))).toBe(true));
-    it("mentions success fee 10~15%", () =>
-      expect(plan.features.some((f) => f.includes("10~15%"))).toBe(true));
   });
 });
 
@@ -96,10 +71,6 @@ describe("pricing policy", () => {
   describe("relative pricing", () => {
     it("business > premium (upgrade priced higher)", () => {
       expect(PLANS.business.price).toBeGreaterThan(PLANS.premium.price);
-    });
-
-    it("expert one-shot > premium monthly", () => {
-      expect(PLANS.expert.price).toBeGreaterThan(PLANS.premium.price);
     });
 
     it("business >= 5x premium", () => {
@@ -128,14 +99,9 @@ describe("pricing policy", () => {
       expect(subs.length).toBe(2);
     });
 
-    it("exactly one single-payment plan", () => {
+    it("no single-payment plans", () => {
       const singles = Object.values(PLANS).filter((p) => p.type === "single");
-      expect(singles.length).toBe(1);
-    });
-
-    it("single plan is 'expert'", () => {
-      const singles = Object.values(PLANS).filter((p) => p.type === "single");
-      expect(singles[0].id).toBe("expert");
+      expect(singles.length).toBe(0);
     });
   });
 });
@@ -153,20 +119,13 @@ describe("generateOrderId — statistical uniqueness", () => {
     expect(set.size).toBe(1000);
   });
 
-  it("generates 1,000 unique expert ids", () => {
-    const set = new Set<string>();
-    for (let i = 0; i < 1000; i++) set.add(generateOrderId("expert"));
-    expect(set.size).toBe(1000);
-  });
-
   it("cross-plan ids do not collide", () => {
     const all = new Set<string>();
     for (let i = 0; i < 300; i++) {
       all.add(generateOrderId("premium"));
       all.add(generateOrderId("business"));
-      all.add(generateOrderId("expert"));
     }
-    expect(all.size).toBe(900);
+    expect(all.size).toBe(600);
   });
 });
 
@@ -213,14 +172,13 @@ describe("generateOrderId — format invariants", () => {
   });
 
   it("first segment is literal 'order'", () => {
-    const id = generateOrderId("expert");
+    const id = generateOrderId("business");
     expect(id.split("_")[0]).toBe("order");
   });
 
   it("planId segment matches the input", () => {
     expect(generateOrderId("premium").split("_")[1]).toBe("premium");
     expect(generateOrderId("business").split("_")[1]).toBe("business");
-    expect(generateOrderId("expert").split("_")[1]).toBe("expert");
   });
 
   it("random suffix is base36 alphanumeric only", () => {
@@ -249,10 +207,8 @@ describe("getPlan — input handling", () => {
       expect(plan?.id).toBe("business");
     });
 
-    it("returns Plan object for 'expert'", () => {
-      const plan = getPlan("expert");
-      expect(plan).not.toBeNull();
-      expect(plan?.id).toBe("expert");
+    it("returns null for removed 'expert' id", () => {
+      expect(getPlan("expert")).toBeNull();
     });
   });
 
@@ -300,10 +256,9 @@ describe("getPlan — input handling", () => {
 });
 
 describe("regression guards", () => {
-  it("plan ids are exactly ['business','expert','premium']", () => {
+  it("plan ids are exactly ['business','premium']", () => {
     expect(Object.keys(PLANS).sort()).toEqual([
       "business",
-      "expert",
       "premium",
     ]);
   });

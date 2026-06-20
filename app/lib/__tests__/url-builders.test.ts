@@ -31,8 +31,8 @@ describe("buildCheckoutUrl", () => {
     expect(buildCheckoutUrl("business")).toBe("/checkout?plan=business");
   });
 
-  it("expert plan", () => {
-    expect(buildCheckoutUrl("expert")).toBe("/checkout?plan=expert");
+  it("arbitrary plan string", () => {
+    expect(buildCheckoutUrl("business")).toBe("/checkout?plan=business");
   });
 
   it("includes origin when provided", () => {

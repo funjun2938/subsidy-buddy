@@ -185,11 +185,11 @@ describe("FAQ content regression (각 답변의 핵심 문장)", () => {
       expect(screen.getByText(/사업자등록증 AI 분석도 무료/)).toBeInTheDocument();
     });
 
-    it("answer notes paid features (신청서 + 전문가)", async () => {
+    it("answer notes paid feature (신청서)", async () => {
       render(<FAQ />);
       await OPEN(ALL_QUESTIONS[4]);
       expect(
-        screen.getByText(/AI 신청서 생성과 전문가 매칭은 유료/),
+        screen.getByText(/소진 후에는 유료로 무제한/),
       ).toBeInTheDocument();
     });
   });

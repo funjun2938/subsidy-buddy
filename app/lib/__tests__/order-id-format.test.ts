@@ -8,12 +8,12 @@ import { generateOrderId, type PlanId } from "@/lib/payment-plans";
  * 변경 시 영향 범위가 큼. 포맷 변경을 막는 잠금 테스트.
  */
 
-const ALL_PLANS: PlanId[] = ["premium", "business", "expert"];
+const ALL_PLANS: PlanId[] = ["premium", "business"];
 
 describe("orderId — basic format", () => {
   it.each(ALL_PLANS)("'%s' format: order_<plan>_<ts>_<rand>", (plan) => {
     const id = generateOrderId(plan);
-    expect(id).toMatch(/^order_(premium|business|expert)_\d{13}_[a-z0-9]{6}$/);
+    expect(id).toMatch(/^order_(premium|business)_\d{13}_[a-z0-9]{6}$/);
   });
 
   it.each(ALL_PLANS)("'%s' starts with 'order_'", (plan) => {
@@ -173,7 +173,7 @@ describe("orderId — round-trip parsing", () => {
   });
 
   it("can reconstruct full id from parts", () => {
-    const id = generateOrderId("expert");
+    const id = generateOrderId("business");
     const parts = id.split("_");
     expect(parts.join("_")).toBe(id);
   });

@@ -1,4 +1,4 @@
-export type PlanId = "premium" | "business" | "expert";
+export type PlanId = "premium" | "business";
 
 export type Plan = {
   id: PlanId;
@@ -21,7 +21,7 @@ export const PLANS: Record<PlanId, Plan> = {
       "전체 매칭 결과 보기",
       "AI 신청서 생성 월 3건",
       "마감 알림 (D-7, D-3, D-1)",
-      "전문가 매칭 10% 할인",
+      "신규 공고 실시간 알림",
     ],
   },
   business: {
@@ -33,22 +33,8 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       "프리미엄 전체 기능 포함",
       "AI 신청서 생성 무제한",
-      "전문가 1:1 전담 배정",
       "신청 대행 수수료 50% 할인",
       "합격률 분석 리포트",
-    ],
-  },
-  expert: {
-    id: "expert",
-    name: "전문가 신청 대행",
-    price: 50000,
-    type: "single",
-    description: "검증된 세무사·변리사·노무사가 직접 대행 (착수금)",
-    features: [
-      "1:1 전문가 배정",
-      "서류 검토 및 보완",
-      "신청서 직접 제출",
-      "성공 시 추가 수수료 10~15%",
     ],
   },
 };
