@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MatchResult } from "@/lib/types";
-import { getSuccessRate } from "@/lib/success-rates";
+import { MatchResult, UserCondition } from "@/lib/types";
+import { getSuccessRate, estimateUserRate } from "@/lib/success-rates";
 import { useFavorites } from "@/lib/useFavorites";
 import { showFavoriteToast } from "@/components/FavoriteToast";
 import MatchScore from "@/components/MatchScore";
@@ -104,7 +104,18 @@ export default function GrantCard({
   const dd = dDay(grant.deadline);
   const urgency = getUrgency(grant.deadline);
   const uCfg = urgencyConfig[urgency];
-  const successRate = getSuccessRate(grant);
+  // 합격률은 상세 페이지와 '같은 값'이어야 한다 → 상세와 동일하게 사용자 조건으로
+  // 개인화한 예측치(estimateUserRate)를 표시. (이전엔 카드만 기본 합격률을 보여 불일치)
+  const successData = getSuccessRate(grant);
+  const _sp = new URLSearchParams(searchParams);
+  const _cond: UserCondition = {
+    bizType: _sp.get("bizType") || "", revenue: _sp.get("revenue") || "",
+    region: _sp.get("region") || "", bizAge: _sp.get("bizAge") || "",
+    ceoAge: _sp.get("ceoAge") || "", summary: _sp.get("summary") || undefined,
+  };
+  const displayRate = (_cond.bizType || _cond.region)
+    ? estimateUserRate(successData.avgAcceptRate, _cond, grant).rate
+    : successData.avgAcceptRate;
   const { toggle, isFavorited } = useFavorites();
   const favorited = isFavorited(grant.id);
 
@@ -161,7 +172,7 @@ export default function GrantCard({
           </div>
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <MatchScore matchScore={matchScore} fitScore={fitScore} />
-            <span className="text-[10px] text-gray-500">합격률 ~{successRate.avgAcceptRate}%</span>
+            <span className="text-[10px] text-gray-500">합격률 ~{displayRate}%</span>
             <span className={`text-xs font-bold ${uCfg.ddColor}`}>
               {dd}
             </span>
