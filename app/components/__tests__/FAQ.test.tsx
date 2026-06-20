@@ -462,7 +462,7 @@ describe("FAQ component", () => {
         const user = userEvent.setup();
         render(<FAQ />);
         await user.click(screen.getByText(EXPECTED_QUESTIONS[4]));
-        expect(screen.getByText(/무료/)).toBeInTheDocument();
+        expect(screen.getAllByText(/무료/).length).toBeGreaterThanOrEqual(1);
       });
     });
   });

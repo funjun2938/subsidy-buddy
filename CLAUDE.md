@@ -26,9 +26,16 @@ Create `app/.env.local` with:
 ```
 GEMINI_API_KEY=...
 ANTHROPIC_API_KEY=...
+
+# 결제 (토스페이먼츠) — 미설정 시 공개 테스트 키로 폴백(로컬/데모용)
+NEXT_PUBLIC_TOSS_CLIENT_KEY=test_gck_...   # 위젯 클라이언트 키. 운영 시 live_gck_*
+TOSS_SECRET_KEY=test_gsk_...               # 서버 전용 시크릿. 절대 클라이언트 노출 금지. 운영 시 live_gsk_*
 ```
 
-Both keys are required for full functionality. The app degrades gracefully if one is missing (Gemini → Claude fallback).
+GEMINI/ANTHROPIC 키는 풀 기능에 필요(둘 중 하나 없으면 Gemini→Claude 폴백).
+토스 키: 클라이언트 키는 `NEXT_PUBLIC_` 접두사로 빌드에 주입되고, 시크릿 키는
+서버(`/api/payments/confirm`)에서만 읽힌다. 둘 다 미설정이면 결제 위젯은 공개
+테스트 키로 동작하고 실제 승인은 `TOSS_SECRET_KEY` 미설정 시 500을 반환한다.
 
 ## Architecture
 

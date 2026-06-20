@@ -6,7 +6,7 @@ import {
   afterEach,
   vi,
 } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 
 /**
  * /checkout 페이지 테스트
@@ -33,11 +33,24 @@ vi.mock("@tosspayments/tosspayments-sdk", () => ({
 }));
 
 // ── 테스트 ──────────────────────────────────────────────────────────────────
+import { Suspense } from "react";
 import CheckoutPage from "@/app/checkout/page";
 import { loadTossPayments } from "@tosspayments/tosspayments-sdk";
 
 function makeSearchParams(plan?: string): Promise<{ plan?: string }> {
   return Promise.resolve(plan === undefined ? {} : { plan });
+}
+
+async function renderCheckout(plan?: string) {
+  let result!: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(
+      <Suspense fallback={null}>
+        <CheckoutPage searchParams={makeSearchParams(plan)} />
+      </Suspense>,
+    );
+  });
+  return result;
 }
 
 describe("CheckoutPage", () => {
@@ -47,86 +60,86 @@ describe("CheckoutPage", () => {
 
   describe("rendering — valid plan", () => {
     it("renders premium plan summary", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(
         await screen.findByText("프리미엄 멤버십"),
       ).toBeInTheDocument();
     });
 
     it("renders business plan summary", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("business")} />);
+      await renderCheckout("business");
       expect(
         await screen.findByText("비즈니스 멤버십"),
       ).toBeInTheDocument();
     });
 
     it("renders expert plan summary", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("expert")} />);
+      await renderCheckout("expert");
       expect(
         await screen.findByText("전문가 신청 대행"),
       ).toBeInTheDocument();
     });
 
     it("renders '결제하기' heading", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(await screen.findByText("결제하기")).toBeInTheDocument();
     });
 
     it("renders '월간 구독' label for premium", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(await screen.findByText("월간 구독")).toBeInTheDocument();
     });
 
     it("renders '월간 구독' label for business", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("business")} />);
+      await renderCheckout("business");
       expect(await screen.findByText("월간 구독")).toBeInTheDocument();
     });
 
     it("renders '단건 결제' label for expert", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("expert")} />);
+      await renderCheckout("expert");
       expect(await screen.findByText("단건 결제")).toBeInTheDocument();
     });
 
     it("renders price 9,900원 for premium", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       const prices = await screen.findAllByText(/9,900원/);
       expect(prices.length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders price 49,000원 for business", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("business")} />);
+      await renderCheckout("business");
       const prices = await screen.findAllByText(/49,000원/);
       expect(prices.length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders price 50,000원 for expert", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("expert")} />);
+      await renderCheckout("expert");
       const prices = await screen.findAllByText(/50,000원/);
       expect(prices.length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders 'back to /pricing' link", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       const back = await screen.findByText("← 요금제로 돌아가기");
       expect(back.closest("a")?.getAttribute("href")).toBe("/pricing");
     });
 
     it("renders '최종 결제 금액' label", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(
         await screen.findByText("최종 결제 금액"),
       ).toBeInTheDocument();
     });
 
     it("renders test-mode disclaimer", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(
         await screen.findByText(/테스트 결제 환경입니다/),
       ).toBeInTheDocument();
     });
 
     it("renders payment method hint", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(
         await screen.findByText(/카드 \/ 카카오페이 \/ 네이버페이/),
       ).toBeInTheDocument();
@@ -135,27 +148,27 @@ describe("CheckoutPage", () => {
 
   describe("rendering — invalid plan", () => {
     it("renders '잘못된 플랜입니다' for unknown plan", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("foo")} />);
+      await renderCheckout("foo");
       expect(
         await screen.findByText("잘못된 플랜입니다"),
       ).toBeInTheDocument();
     });
 
     it("renders '잘못된 플랜입니다' when plan is missing", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams()} />);
+      await renderCheckout();
       expect(
         await screen.findByText("잘못된 플랜입니다"),
       ).toBeInTheDocument();
     });
 
     it("renders link back to /pricing on error", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("foo")} />);
+      await renderCheckout("foo");
       const link = await screen.findByText("요금제로 돌아가기");
       expect(link.closest("a")?.getAttribute("href")).toBe("/pricing");
     });
 
     it("does NOT call loadTossPayments for invalid plan", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("foo")} />);
+      await renderCheckout("foo");
       await waitFor(() => {
         expect(loadTossPayments).not.toHaveBeenCalled();
       });
@@ -164,7 +177,7 @@ describe("CheckoutPage", () => {
 
   describe("plan feature display", () => {
     it("premium: shows all 5 features", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       const features = [
         "AI 지원사업 매칭 무제한",
         "전체 매칭 결과 보기",
@@ -178,7 +191,7 @@ describe("CheckoutPage", () => {
     });
 
     it("business: shows all 5 features", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("business")} />);
+      await renderCheckout("business");
       const features = [
         "프리미엄 전체 기능 포함",
         "AI 신청서 생성 무제한",
@@ -192,7 +205,7 @@ describe("CheckoutPage", () => {
     });
 
     it("expert: shows all 4 features", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("expert")} />);
+      await renderCheckout("expert");
       const features = [
         "1:1 전문가 배정",
         "서류 검토 및 보완",
@@ -207,14 +220,14 @@ describe("CheckoutPage", () => {
 
   describe("toss SDK integration", () => {
     it("calls loadTossPayments once with the client key", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(loadTossPayments).toHaveBeenCalled();
       });
     });
 
     it("loadTossPayments receives a 'test_gck_' client key (widget mode)", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(loadTossPayments).toHaveBeenCalled();
       });
@@ -223,7 +236,7 @@ describe("CheckoutPage", () => {
     });
 
     it("calls widgets() with customerKey: ANONYMOUS", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockTossPayments.widgets).toHaveBeenCalled();
       });
@@ -232,7 +245,7 @@ describe("CheckoutPage", () => {
     });
 
     it("calls setAmount with KRW currency", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockWidgets.setAmount).toHaveBeenCalled();
       });
@@ -241,7 +254,7 @@ describe("CheckoutPage", () => {
     });
 
     it("setAmount value matches plan price (premium → 9900)", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockWidgets.setAmount).toHaveBeenCalled();
       });
@@ -250,7 +263,7 @@ describe("CheckoutPage", () => {
     });
 
     it("setAmount value matches plan price (business → 49000)", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("business")} />);
+      await renderCheckout("business");
       await waitFor(() => {
         expect(mockWidgets.setAmount).toHaveBeenCalled();
       });
@@ -259,7 +272,7 @@ describe("CheckoutPage", () => {
     });
 
     it("setAmount value matches plan price (expert → 50000)", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("expert")} />);
+      await renderCheckout("expert");
       await waitFor(() => {
         expect(mockWidgets.setAmount).toHaveBeenCalled();
       });
@@ -268,7 +281,7 @@ describe("CheckoutPage", () => {
     });
 
     it("calls renderPaymentMethods with #payment-method selector", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockWidgets.renderPaymentMethods).toHaveBeenCalled();
       });
@@ -277,7 +290,7 @@ describe("CheckoutPage", () => {
     });
 
     it("uses variantKey 'DEFAULT' for payment methods", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockWidgets.renderPaymentMethods).toHaveBeenCalled();
       });
@@ -286,7 +299,7 @@ describe("CheckoutPage", () => {
     });
 
     it("calls renderAgreement with #agreement selector", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockWidgets.renderAgreement).toHaveBeenCalled();
       });
@@ -295,7 +308,7 @@ describe("CheckoutPage", () => {
     });
 
     it("uses variantKey 'AGREEMENT' for agreement widget", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       await waitFor(() => {
         expect(mockWidgets.renderAgreement).toHaveBeenCalled();
       });
@@ -306,40 +319,28 @@ describe("CheckoutPage", () => {
 
   describe("widget container DOM", () => {
     it("renders #payment-method container", async () => {
-      const { container } = render(
-        <CheckoutPage searchParams={makeSearchParams("premium")} />,
-      );
-      await waitFor(() => {
-        expect(container.querySelector("#payment-method")).not.toBeNull();
-      });
+      const { container } = await renderCheckout("premium");
+      expect(container.querySelector("#payment-method")).not.toBeNull();
     });
 
     it("renders #agreement container", async () => {
-      const { container } = render(
-        <CheckoutPage searchParams={makeSearchParams("premium")} />,
-      );
-      await waitFor(() => {
-        expect(container.querySelector("#agreement")).not.toBeNull();
-      });
+      const { container } = await renderCheckout("premium");
+      expect(container.querySelector("#agreement")).not.toBeNull();
     });
 
     it("widgets are wrapped in 'toss-widget-frame' for dark theme", async () => {
-      const { container } = render(
-        <CheckoutPage searchParams={makeSearchParams("premium")} />,
-      );
-      await waitFor(() => {
-        const frames = container.querySelectorAll(".toss-widget-frame");
-        expect(frames.length).toBe(2);
-      });
+      const { container } = await renderCheckout("premium");
+      const frames = container.querySelectorAll(".toss-widget-frame");
+      expect(frames.length).toBe(2);
     });
 
     it("renders the '결제 수단' label", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(await screen.findByText("결제 수단")).toBeInTheDocument();
     });
 
     it("renders the '약관 동의' label", async () => {
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(await screen.findByText("약관 동의")).toBeInTheDocument();
     });
   });
@@ -349,7 +350,7 @@ describe("CheckoutPage", () => {
       (loadTossPayments as any).mockRejectedValueOnce(
         new Error("load failed"),
       );
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(
         await screen.findByText(/load failed|결제 위젯 로드 실패/),
       ).toBeInTheDocument();
@@ -359,7 +360,7 @@ describe("CheckoutPage", () => {
       mockTossPayments.widgets.mockImplementationOnce(() => {
         throw new Error("widgets failed");
       });
-      render(<CheckoutPage searchParams={makeSearchParams("premium")} />);
+      await renderCheckout("premium");
       expect(
         await screen.findByText(/widgets failed|결제 위젯 로드 실패/),
       ).toBeInTheDocument();

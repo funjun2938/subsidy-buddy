@@ -9,8 +9,12 @@ import {
   type TossPaymentsWidgets,
 } from "@tosspayments/tosspayments-sdk";
 
-// Toss 위젯 전용 테스트 클라이언트 키 (test_gck_*)
-const TOSS_CLIENT_KEY = "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm";
+// Toss 위젯 클라이언트 키.
+// 운영: Vercel 환경변수 NEXT_PUBLIC_TOSS_CLIENT_KEY(live_gck_*)로 주입.
+// 미설정 시 토스 공식 문서 공개 테스트 키(test_gck_*)로 폴백 — 로컬/데모용.
+const TOSS_CLIENT_KEY =
+  process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ??
+  "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm";
 
 type SearchParams = Promise<{ plan?: string }>;
 

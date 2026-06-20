@@ -25,11 +25,14 @@ describe("POST /api/payments/confirm", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    // Ensure the secret key env var is set so the route doesn't bail with 500
+    process.env.TOSS_SECRET_KEY = "test_sk_placeholder";
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    delete process.env.TOSS_SECRET_KEY;
   });
 
   describe("request validation", () => {
@@ -444,37 +447,36 @@ describe("POST /api/payments/confirm", () => {
             orderName: "Plan",
             method: "card",
             approvedAt: "2026-05-30T00:00:00Z",
-            totalAmount: 0,
+            totalAmount: 9900,
           }),
           { status: 200 },
         ),
       );
     });
 
-    it("accepts amount=0 (edge case)", async () => {
+    it("rejects amount=0 (route enforces amount > 0)", async () => {
       const res = await POST(
-        makeRequest({ paymentKey: "p", orderId: "o", amount: 0 }),
+        makeRequest({ paymentKey: "p", orderId: "order_premium_1", amount: 0 }),
       );
-      // 0 is technically a falsy number — but the contract says number is enough.
-      // The current implementation rejects 0 because of `typeof amount !== 'number'` is false but the actual check uses truthiness in upstream path. Verify accepted.
-      // Either 200 (passes to toss) or 400 (defensive). We assert SOMETHING reasonable returned.
-      expect([200, 400]).toContain(res.status);
+      // Route rejects 0 because amount <= 0 check
+      expect(res.status).toBe(400);
     });
 
-    it("accepts large amount (1,000,000)", async () => {
+    it("rejects amount that doesn't match plan price (server-side validation)", async () => {
       const res = await POST(
-        makeRequest({ paymentKey: "p", orderId: "o", amount: 1_000_000 }),
+        makeRequest({ paymentKey: "p", orderId: "order_premium_1", amount: 1_000_000 }),
       );
-      expect(res.status).toBe(200);
+      // Route validates amount === plan.price (9900 for premium); 1M is rejected
+      expect(res.status).toBe(400);
     });
 
-    it("accepts amount with decimals (sent as-is to toss)", async () => {
+    it("forwards amount to toss when it matches plan price exactly", async () => {
       await POST(
-        makeRequest({ paymentKey: "p", orderId: "o", amount: 9900.5 }),
+        makeRequest({ paymentKey: "p", orderId: "order_premium_1", amount: 9900 }),
       );
       const [, init] = fetchMock.mock.calls[0];
       const parsed = JSON.parse(init.body);
-      expect(parsed.amount).toBe(9900.5);
+      expect(parsed.amount).toBe(9900);
     });
   });
 });

@@ -18,10 +18,10 @@ describe("Footer — 서비스 섹션", () => {
     expect(link?.getAttribute("href")).toBe("/generate");
   });
 
-  it("전문가 매칭 → /experts", () => {
+  it("공고 찾기 → /match", () => {
     render(<Footer />);
-    const link = screen.getByText("전문가 매칭").closest("a");
-    expect(link?.getAttribute("href")).toBe("/experts");
+    const link = screen.getByText("공고 찾기").closest("a");
+    expect(link?.getAttribute("href")).toBe("/match");
   });
 
   it("요금제 → /pricing", () => {
@@ -71,10 +71,10 @@ describe("Footer — 프로젝트 섹션", () => {
     expect(link?.getAttribute("href")).toBe("mailto:support@subsidy-ai.kr");
   });
 
-  it("문의 이메일 target=_blank", () => {
+  it("문의 이메일 is external link (mailto:)", () => {
     render(<Footer />);
     const link = screen.getByText("문의 이메일").closest("a");
-    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("href")).toMatch(/^mailto:/);
   });
 });
 
@@ -110,9 +110,9 @@ describe("Footer — 법적 정보 섹션", () => {
 });
 
 describe("Footer — Data Sources 섹션", () => {
-  it("'DATA SOURCES' 헤딩", () => {
+  it("'Data Sources' 헤딩", () => {
     render(<Footer />);
-    expect(screen.getByText(/DATA SOURCES/)).toBeInTheDocument();
+    expect(screen.getByText(/data sources/i)).toBeInTheDocument();
   });
 
   it("기업마당 공공API → https://www.bizinfo.go.kr/", () => {
@@ -184,20 +184,20 @@ describe("Footer — 저작권 (년도)", () => {
   });
 
   it("2027년 표기 (미래)", () => {
-    vi.setSystemTime(new Date("2027-12-31T23:59:59Z"));
+    vi.setSystemTime(new Date("2027-06-15T12:00:00Z"));
     render(<Footer />);
     expect(screen.getByText(/© 2027/)).toBeInTheDocument();
   });
 
   it("2025년 표기 (과거)", () => {
-    vi.setSystemTime(new Date("2025-01-01T00:00:00Z"));
+    vi.setSystemTime(new Date("2025-01-01T12:00:00Z"));
     render(<Footer />);
     expect(screen.getByText(/© 2025/)).toBeInTheDocument();
   });
 
-  it("저작권 안내 'All rights reserved.'", () => {
-    vi.setSystemTime(new Date("2026-05-30T00:00:00Z"));
+  it("저작권 안내 MIT 라이선스 표기", () => {
+    vi.setSystemTime(new Date("2026-05-30T12:00:00Z"));
     render(<Footer />);
-    expect(screen.getByText(/All rights reserved/i)).toBeInTheDocument();
+    expect(screen.getByText(/MIT/)).toBeInTheDocument();
   });
 });

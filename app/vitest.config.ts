@@ -9,7 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "e2e/**"],
+    // tests/ 는 bun:test 전용(npm run test:bun) — vitest가 집어가면 import 에러.
+    exclude: ["node_modules", ".next", "e2e/**", "tests/**"],
     css: false,
     coverage: {
       provider: "v8",
