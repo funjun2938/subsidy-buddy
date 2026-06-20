@@ -219,7 +219,7 @@ function scoreToFit(score: number): number {
  * blended = ruleWeight·(룰점수 정규화) + (1-ruleWeight)·(LLM 적합도).
  * LLM 응답이 없는 grant 는 룰 점수 정규화로 대체. 동점은 id 로 안정 정렬.
  */
-export function blendFits(scored: ScoredGrant[], fitById: Record<string, number>, ruleWeight = 0.45): RankedFit[] {
+export function blendFits(scored: ScoredGrant[], fitById: Record<string, number>, ruleWeight = 0.35): RankedFit[] {
   if (scored.length === 0) return [];
   const vals = scored.map(s => s.score);
   const min = Math.min(...vals), max = Math.max(...vals);
