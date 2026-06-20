@@ -25,6 +25,8 @@ interface AnalyzedResult {
   certifications?: string[];
   summary: string;
   keywords: string[];
+  companyName?: string;     // 상호명/법인명 (사업자등록증 OCR)
+  businessNumber?: string;  // 사업자등록번호 (사업자등록증 OCR)
 }
 
 const EMPLOYEE_COUNTS = ["없음", "1~4명", "5~9명", "10~49명", "50명 이상"] as const;
@@ -202,6 +204,19 @@ export default function ConditionForm() {
     if (employeeCount) params.set("employees", employeeCount);
     if (ceoGender) params.set("ceoGender", ceoGender);
     if (certifications.size > 0) params.set("certifications", Array.from(certifications).join(","));
+    // 신청서 스튜디오가 진입 즉시 자동 채움에 쓰도록, 분석된 사업 프로필을 보관한다.
+    try {
+      const profile = {
+        companyName: analyzed?.companyName || "",
+        businessNumber: analyzed?.businessNumber || "",
+        bizType, revenue, region, bizAge, ceoAge,
+        employeeCount, ceoGender,
+        certifications: Array.from(certifications),
+        summary: analyzed?.summary || "",
+        keywords: analyzed?.keywords || [],
+      };
+      sessionStorage.setItem("restand.bizProfile", JSON.stringify(profile));
+    } catch { /* sessionStorage 불가 환경 무시 */ }
     recordSearch(`${bizType} · ${region}`, "match");
     router.push(`/results?${params.toString()}`);
   }

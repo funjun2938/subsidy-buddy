@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDocSession } from "./hooks/useDocSession";
 import { useDocTokens } from "@/lib/docTokens";
 import { StudioEntry } from "./components/StudioEntry";
@@ -48,6 +48,23 @@ export default function StudioPage() {
     if (!tokens.canUse) { setGateOpen(true); return; }
     s.sendCommand(cmd, bizInfo, (used) => tokens.consume(used));
   };
+
+  // 진입 시 1회 자동 채움: 양식이 로드되고 사업 정보(사업자등록증 OCR + 인계 데이터)가
+  // 있으면, 사용자가 명령하지 않아도 초안을 최대한 채워 보여준다. (미리보기·다운로드에 반영)
+  const autoFilledRef = useRef(false);
+  useEffect(() => {
+    if (autoFilledRef.current) return;
+    if (!s.structure || !bizInfo.trim()) return;
+    if (!tokens.mounted) return;          // 토큰 상태 확정 후 판단
+    autoFilledRef.current = true;
+    if (!tokens.canUse) return;           // 무료 예산 소진 시 자동 채움만 생략(진입은 허용)
+    s.sendCommand(
+      "위 사업 정보를 바탕으로 이 신청서에서 채울 수 있는 모든 칸을 정확히 채워줘. 사업 정보로 알 수 없는 값은 비워둬.",
+      bizInfo,
+      (used) => tokens.consume(used),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.structure, bizInfo, tokens.mounted]);
 
   // 채운 양식을 HWPX 로 다운로드 (원본 + fills → rhwp 가 직접 채워 HWPX 내보내기)
   const [hwpxBusy, setHwpxBusy] = useState(false);
