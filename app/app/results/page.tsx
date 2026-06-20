@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { MatchResult } from "@/lib/types";
 import GrantCard from "@/components/GrantCard";
 import SaveMatchSection from "@/components/SaveMatchSection";
@@ -51,7 +51,22 @@ function ResultsContent() {
   }, []);
 
   const paramsString = searchParams.toString();
-  const highCount = matches.filter((m) => m.matchScore === "high").length;
+
+  // 지역 우선 정렬 + 매칭율 50% 이하 숨김.
+  // 1) 내 지역 특화 → 2) 전국구 → 3) 그 외 지역, 각 그룹 내 매칭율(fitScore) 높은 순.
+  const visibleMatches = useMemo(() => {
+    const tier = (m: MatchResult) => {
+      const r = m.grant.region;
+      if (r === condition.region) return 0;
+      if (r === "전국") return 1;
+      return 2;
+    };
+    return matches
+      .filter((m) => (m.fitScore ?? 0) > 50)
+      .sort((a, b) => tier(a) - tier(b) || (b.fitScore ?? 0) - (a.fitScore ?? 0));
+  }, [matches, condition.region]);
+
+  const highCount = visibleMatches.filter((m) => m.matchScore === "high").length;
 
   return (
     <div className="max-w-3xl mx-auto px-5 py-10">
@@ -150,17 +165,17 @@ function ResultsContent() {
             </div>
           </div>
 
-          {matches.length > 0 && (
-            <SaveMatchSection conditions={condition} matchedGrants={matches} />
+          {visibleMatches.length > 0 && (
+            <SaveMatchSection conditions={condition} matchedGrants={visibleMatches} />
           )}
 
           <div className="space-y-4">
-            {matches.map((m) => (
+            {visibleMatches.map((m) => (
               <GrantCard key={m.grant.id} match={m} searchParams={paramsString} />
             ))}
           </div>
 
-          {matches.length === 0 && (
+          {visibleMatches.length === 0 && (
             <div className="text-center py-20">
               <div className="text-4xl mb-4">🔍</div>
               <p className="text-gray-300 mb-2">현재 조건에 매칭되는 지원사업이 없습니다</p>
