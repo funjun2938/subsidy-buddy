@@ -20,6 +20,9 @@ export default function StudioPage() {
     else router.push("/match");
   };
   const [bizInfo, setBizInfo] = useState("");
+  // 공고 원문 URL (공고에서 넘어온 경우) — 양식 로드 후에도 원문 링크를 보여주기 위함.
+  const [grantUrl, setGrantUrl] = useState("");
+  useEffect(() => { setGrantUrl(new URLSearchParams(window.location.search).get("grantUrl") || ""); }, []);
   // 모바일에선 작성/미리보기를 한 화면에 둘 수 없어 탭으로 전환한다.
   const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
   // 미리보기 모드: 원문(rhwp 고충실 렌더) / 편집(칸 채우기 표)
@@ -118,7 +121,7 @@ export default function StudioPage() {
       <div className="flex-1 flex min-h-0">
         <div className={`${mobileTab === "chat" ? "flex" : "hidden"} md:flex w-full md:w-[42%] md:shrink-0 min-h-0`}>
           <ChatPanel structure={s.structure} valueMap={s.valueMap} messages={s.messages} busy={s.busy}
-            onBack={handleBack}
+            onBack={handleBack} grantUrl={grantUrl}
             onSend={handleSend} onUndo={s.undo} canUndo={s.canUndo}
             onExport={s.exportDoc} onExportHwpx={handleHwpxDownload}
             onShowPreview={() => setMobileTab("preview")}
