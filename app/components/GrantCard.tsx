@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MatchResult } from "@/lib/types";
 import { getSuccessRate } from "@/lib/success-rates";
@@ -107,6 +108,28 @@ export default function GrantCard({
   const { toggle, isFavorited } = useFavorites();
   const favorited = isFavorited(grant.id);
 
+  // 'AI신청서 작성 가능' 뱃지: 해당 공고에 '신청서' 이름의 .hwpx 가 (zip 아닌) 직접
+  // 첨부돼 AI 자동기입이 가능한 경우에만. 기업마당(biz-PBLN_) 공고만 첨부 조회 가능.
+  const [canAutoFill, setCanAutoFill] = useState(false);
+  useEffect(() => {
+    if (!grant.id.startsWith("biz-PBLN_")) return;
+    const pid = grant.id.slice(4);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/grant-attachments?pblancId=${encodeURIComponent(pid)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const ok = (data.attachments || []).some(
+          (a: { ext?: string; filename?: string }) =>
+            a.ext === "hwpx" && (a.filename || "").includes("신청서"),
+        );
+        if (!cancelled && ok) setCanAutoFill(true);
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [grant.id]);
+
   return (
     <div className="relative group">
       <Link
@@ -128,6 +151,11 @@ export default function GrantCard({
                 {grant.category}
               </span>
               <span className="text-[11px] text-gray-600">{grant.orgName}</span>
+              {canAutoFill && (
+                <span className="text-[11px] px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/30 font-semibold">
+                  📝 AI신청서 작성 가능
+                </span>
+              )}
             </div>
             <h3 className="text-base font-bold text-white leading-snug">{grant.title}</h3>
           </div>
