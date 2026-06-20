@@ -1,4 +1,4 @@
-import { Grant } from "./types";
+import { Grant, REGIONS } from "./types";
 
 interface BizInfoItem {
   pblancId?: string;
@@ -124,6 +124,136 @@ export async function fetchBizInfoGrants(): Promise<Grant[]> {
     console.error("[Crawler] Fetch error:", error);
     return [];
   }
+}
+
+// ── K-Startup (창업진흥원) 공고 API ───────────────────────────────────────────
+// data.go.kr serviceKey 기반. 기존 BIZINFO_API_KEY(64자 디코딩 키)가 그대로 동작함.
+const KSTARTUP_BASE =
+  "https://nidapi.k-startup.go.kr/api/kisedKstartupService/v1/getAnnouncementInformation";
+
+interface KstartupItem {
+  pbanc_sn?: string | number;        // 고유번호
+  biz_pbanc_nm?: string;             // 공고명
+  pbanc_ntrp_nm?: string;            // 기관명
+  sprv_inst?: string;                // 주관기관(폴백)
+  supt_biz_clsfc?: string;           // 분류
+  supt_regin?: string;               // 지역(쉼표 多)
+  pbanc_rcpt_bgng_dt?: string;       // 접수시작 YYYYMMDD
+  pbanc_rcpt_end_dt?: string;        // 접수종료 YYYYMMDD
+  pbanc_ctnt?: string;               // 내용
+  aply_trgt?: string;                // 신청대상
+  aply_trgt_ctnt?: string;           // 신청대상 내용
+  aply_excl_trgt_ctnt?: string;      // 신청제외 대상
+  biz_enyy?: string;                 // 업력
+  detl_pg_url?: string;              // 상세 URL
+  rcrt_prgs_yn?: string;             // 모집중 Y/N
+  [key: string]: string | number | null | undefined;
+}
+
+// YYYYMMDD → YYYY-MM-DD (실패 시 "상시")
+function parseKstartupDate(raw?: string): string {
+  const s = String(raw || "").trim();
+  const m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : "상시";
+}
+
+export async function fetchKstartupGrants(): Promise<Grant[]> {
+  const apiKey = process.env.KSTARTUP_API_KEY ?? process.env.BIZINFO_API_KEY;
+  if (!apiKey || apiKey === "your_bizinfo_api_key_here") {
+    console.log("[Crawler] K-Startup API key not set, skipping");
+    return [];
+  }
+
+  // 진행중 + 마감 안 지난 것만 추림 (총 ~29k 이력 전체를 가져오지 않는다)
+  const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const isOngoing = (item: KstartupItem): boolean => {
+    if (String(item.rcrt_prgs_yn || "").toUpperCase() !== "Y") return false;
+    const deadline = parseKstartupDate(item.pbanc_rcpt_end_dt);
+    return deadline === "상시" || deadline >= todayStr;
+  };
+
+  const PER_PAGE = 100;
+  const MAX_PAGES = 10;       // 안전 상한 (최대 ~1000건만 스캔)
+  const ENOUGH = 300;         // 진행중 충분히 모이면 조기 종료
+
+  const fetchPage = async (page: number): Promise<KstartupItem[]> => {
+    // serviceKey는 이미 인코딩된 키 — URLSearchParams의 재인코딩을 피하려 수동 결합
+    const params = new URLSearchParams({
+      page: String(page),
+      perPage: String(PER_PAGE),
+      returnType: "json",
+    });
+    const url = `${KSTARTUP_BASE}?serviceKey=${apiKey}&${params.toString()}`;
+    const res = await fetchWithRetry(url, { next: { revalidate: 3600 } });
+    if (!res.ok) {
+      console.error(`[Crawler] K-Startup page ${page} failed: ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const raw = data?.data;
+    return Array.isArray(raw) ? raw : raw ? [raw] : [];
+  };
+
+  try {
+    const ongoing: KstartupItem[] = [];
+    let capped = false;
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const items = await fetchPage(page);
+      if (items.length === 0) break; // 더 이상 데이터 없음
+      ongoing.push(...items.filter(isOngoing));
+      if (ongoing.length >= ENOUGH) {
+        capped = true;
+        break;
+      }
+      if (page === MAX_PAGES && items.length === PER_PAGE) capped = true;
+    }
+
+    console.log(`[Crawler] K-Startup ongoing kept: ${ongoing.length}${capped ? " (capped)" : ""}`);
+    return ongoing.map(parseKstartupItem);
+  } catch (error) {
+    console.error("[Crawler] K-Startup fetch error:", error);
+    return [];
+  }
+}
+
+function parseKstartupItem(item: KstartupItem): Grant {
+  const title = item.biz_pbanc_nm || "창업지원사업";
+  const ctnt = String(item.pbanc_ctnt || "");
+  const aplyCtnt = String(item.aply_trgt_ctnt || "");
+
+  // 지역: supt_regin 첫 쉼표 구간이 REGIONS 값이면 사용, 아니면 "전국"
+  const firstRegion = String(item.supt_regin || "").split(",")[0].trim();
+  const region = (REGIONS as readonly string[]).includes(firstRegion)
+    ? firstRegion
+    : "전국";
+
+  const description =
+    decodeEntities(ctnt.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()).slice(0, 300) ||
+    "상세 내용은 공고 원문을 확인하세요.";
+
+  const requirements =
+    decodeEntities(
+      [item.aply_trgt, item.aply_trgt_ctnt, item.aply_excl_trgt_ctnt]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    ) || "공고 원문 참조";
+
+  return {
+    id: `kstartup-${item.pbanc_sn}`,
+    title,
+    orgName: item.pbanc_ntrp_nm || item.sprv_inst || "창업진흥원",
+    category: item.supt_biz_clsfc || "창업",
+    region,
+    targetBizTypes: guessTargetBizTypes(title, ctnt, aplyCtnt),
+    amount: guessAmount(ctnt, title, ""),
+    deadline: parseKstartupDate(item.pbanc_rcpt_end_dt),
+    description,
+    requirements,
+    url: item.detl_pg_url || "https://www.k-startup.go.kr",
+  };
 }
 
 function parseBizInfoItem(item: BizInfoItem, idx: number): Grant {
