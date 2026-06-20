@@ -25,9 +25,10 @@ const canAutoFill = (ext: string) => ext === "hwp" || ext === "hwpx";
 const toPblancId = (id: string) => (id.startsWith("biz-") ? id.slice(4) : id);
 const isBizInfo = (id: string) => toPblancId(id).startsWith("PBLN_");
 
-export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTitle: string) => void }) {
-  const [grantTitle, setGrantTitle] = useState("");
-  const [pblancId, setPblancId] = useState("");
+export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGrantTitle = "" }:
+  { onPick: (file: File, grantTitle: string) => void; initialPblancId?: string; initialGrantTitle?: string }) {
+  const [grantTitle, setGrantTitle] = useState(initialGrantTitle);
+  const [pblancId, setPblancId] = useState(initialPblancId);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -101,6 +102,12 @@ export function GrantAttachmentPicker({ onPick }: { onPick: (file: File, grantTi
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // 공고 화면에서 넘어온 pblancId 가 있으면 진입 시 그 공고의 첨부를 자동 로드한다.
+  useEffect(() => {
+    if (initialPblancId) void loadAttachments(initialPblancId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pickGrant = (g: GrantSummary) => {

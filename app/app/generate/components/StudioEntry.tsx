@@ -1,11 +1,27 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GrantAttachmentPicker } from "./GrantAttachmentPicker";
 
 export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string, grantTitle: string) => void }) {
   const [bizInfo, setBizInfo] = useState("");
   const [grantTitle, setGrantTitle] = useState("");
   const [mode, setMode] = useState<"upload" | "grant">("upload");
+  const [initialPblancId, setInitialPblancId] = useState("");
+
+  // 공고 화면에서 넘어온 경우: URL 쿼리(grantTitle/pblancId/bizInfo/bizType/keywords)를 읽어
+  // 업로드했던 사업정보와 해당 공고를 자동으로 끌어온다. (클라에서만 읽어 hydration 안전)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const bi = sp.get("bizInfo") || "";
+    const bt = sp.get("bizType") || "";
+    const kw = (sp.get("keywords") || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const gt = sp.get("grantTitle") || "";
+    const pid = sp.get("pblancId") || "";
+    const composed = [bi, bt && `업종: ${bt}`, kw.length ? `키워드: ${kw.join(", ")}` : ""].filter(Boolean).join("\n");
+    if (composed) setBizInfo(composed);
+    if (gt) setGrantTitle(gt);
+    if (pid) { setInitialPblancId(pid); setMode("grant"); }
+  }, []);
 
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -45,7 +61,8 @@ export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string
           </label>
         </>
       ) : (
-        <GrantAttachmentPicker onPick={(file, gt) => onReady(file, bizInfo, gt)} />
+        <GrantAttachmentPicker onPick={(file, gt) => onReady(file, bizInfo, gt)}
+          initialPblancId={initialPblancId} initialGrantTitle={grantTitle} />
       )}
     </div>
   );
