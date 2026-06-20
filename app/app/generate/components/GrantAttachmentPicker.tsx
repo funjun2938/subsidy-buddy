@@ -35,7 +35,6 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
   const [options, setOptions] = useState<GrantSummary[]>([]);
   const [attachments, setAttachments] = useState<GrantAttachment[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadedOnce, setLoadedOnce] = useState(false); // 첨부 로드를 한 번이라도 시도했는지
   const [status, setStatus] = useState("");
   const [downloading, setDownloading] = useState(false);
 
@@ -45,8 +44,10 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
       return { id: x.id, title: x.title, deadline: x.deadline, orgName: x.orgName };
     });
 
-  // 진입 시: 마감 임박 공고 6개를 기본 노출
+  // 진입 시: 마감 임박 공고 6개를 기본 노출.
+  // 단, 공고에서 넘어온 경우(이미 공고 선택됨)엔 기본 목록을 띄우지 않는다.
   useEffect(() => {
+    if (initialPblancId || initialGrantTitle) return;
     let cancelled = false;
     (async () => {
       try {
@@ -56,6 +57,7 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
       } catch { /* silent */ }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 조회: 키워드로 공고 검색 (지역/제목/기관). q0 가 있으면 그걸로(자동검색용).
@@ -102,7 +104,6 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
       setStatus(`첨부 로드 오류: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
-      setLoadedOnce(true);
     }
   }, []);
 
@@ -154,8 +155,22 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
     }
   };
 
+  // 공고 원문 URL: 전달받은 grantUrl 우선, 없으면 PBLN_ id 로 기업마당 상세 URL 구성.
+  const resolvedUrl =
+    grantUrl ||
+    (pblancId.startsWith("PBLN_")
+      ? `https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=${pblancId}`
+      : "");
+
   return (
     <div className="space-y-3">
+      {/* 공고 원문 보기 — 양식 유무와 무관하게 항상 노출 */}
+      {resolvedUrl && (
+        <a href={resolvedUrl} target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-semibold hover:bg-blue-100 transition">
+          🔗 공고 원문 보기 →
+        </a>
+      )}
       {/* 공고 검색 (조회 버튼) */}
       <div className="flex gap-2">
         <input value={query} onChange={(e) => setQuery(e.target.value)}
@@ -246,25 +261,6 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
           })}
         </div>
       )}
-
-      {/* 자동 작성 가능한 .hwp/.hwpx 양식이 없을 때: 안내 + 공고 원문 링크 */}
-      {!loading && loadedOnce && !attachments.some((a) => canAutoFill(a.ext)) && (() => {
-        const url = grantUrl
-          || (pblancId ? `https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=${pblancId}` : "");
-        return (
-          <div className="rounded-xl p-4 bg-amber-50 border border-amber-200 space-y-2.5">
-            <p className="text-sm text-amber-800 font-medium">신청서 양식이 없습니다</p>
-            <p className="text-[12px] text-amber-700">📭 이 공고에는 자동 작성 가능한 신청서 양식(.hwp/.hwpx)이 없습니다.</p>
-            {url && (
-              <a href={url} target="_blank" rel="noreferrer"
-                className="inline-block px-3 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition">
-                공고 원문 보기 →
-              </a>
-            )}
-            <p className="text-[11px] text-amber-600">위 “📤 양식 직접 업로드”로 직접 양식을 올려 작성할 수도 있습니다.</p>
-          </div>
-        );
-      })()}
 
       {status && <p className="text-[11px] text-gray-500 whitespace-pre-line">{status}</p>}
       {downloading && <p className="text-[11px] text-blue-600">신청서를 가져오는 중…</p>}
