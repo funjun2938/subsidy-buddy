@@ -4,11 +4,12 @@ import type { DocStructure, ValueMap } from "@/lib/doc-structure";
 import type { ChatMessage } from "../hooks/useDocSession";
 import { SummaryBubble } from "./SummaryBubble";
 
-export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onExportHwpx, onShowPreview, tokenInfo }: {
+export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo, canUndo, onExport, onExportHwpx, onShowPreview, onBack, tokenInfo }: {
   structure: DocStructure; valueMap: ValueMap; messages: ChatMessage[]; busy: boolean;
   onSend: (cmd: string) => void; onUndo: () => void; canUndo: boolean;
   onExport: () => void; onExportHwpx?: () => void;
   onShowPreview?: () => void;
+  onBack?: () => void;
   tokenInfo?: { isPro: boolean; percent: number } | null;
 }) {
   const [input, setInput] = useState("");
@@ -25,6 +26,10 @@ export function ChatPanel({ structure, valueMap, messages, busy, onSend, onUndo,
     <div className="w-full flex flex-col bg-[#f7f8fa] md:border-r border-[#e8eaee] min-h-0">
       <div className="px-4 py-3 border-b border-[#e8eaee] font-bold text-[#1f2430] text-sm flex items-center justify-between gap-2">
         <span className="flex items-center gap-2 min-w-0">
+          {onBack && (
+            <button onClick={onBack} title="이전 화면으로"
+              className="shrink-0 text-[13px] px-1.5 py-0.5 rounded text-[#6b7280] hover:bg-[#eef0f3]">←</button>
+          )}
           <span className="truncate">✍️ AI 신청서 작성</span>
           {tokenInfo && (
             tokenInfo.isPro ? (

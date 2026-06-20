@@ -2,11 +2,12 @@
 import { useEffect, useState } from "react";
 import { GrantAttachmentPicker } from "./GrantAttachmentPicker";
 
-export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string, grantTitle: string) => void }) {
+export function StudioEntry({ onReady, onBack }: { onReady: (file: File, bizInfo: string, grantTitle: string) => void; onBack?: () => void }) {
   const [bizInfo, setBizInfo] = useState("");
   const [grantTitle, setGrantTitle] = useState("");
   const [mode, setMode] = useState<"upload" | "grant">("upload");
   const [initialPblancId, setInitialPblancId] = useState("");
+  const [grantUrl, setGrantUrl] = useState("");
 
   // 공고 화면에서 넘어온 경우: URL 쿼리(grantTitle/pblancId/bizInfo/bizType/keywords) +
   // 매칭 때 분석·보관한 사업 프로필(sessionStorage)을 읽어, 업로드했던 사업정보와 해당
@@ -20,6 +21,8 @@ export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string
     // 공고에서 넘어오면(제목/ID 중 하나라도) '공고에서 첨부 불러오기' 모드로 랜딩.
     if (gt || pid) setMode("grant");
     if (pid) setInitialPblancId(pid);
+    const gurl = sp.get("grantUrl") || "";
+    if (gurl) setGrantUrl(gurl);
 
     // 1) 분석된 사업 프로필(우선) — 라벨링해 칸 매핑이 잘 되게
     let composed = "";
@@ -63,6 +66,12 @@ export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-4">
+      {onBack && (
+        <button type="button" onClick={onBack}
+          className="text-sm text-gray-500 hover:text-gray-700 transition">
+          ← 이전
+        </button>
+      )}
       <h1 className="text-lg md:text-xl font-bold">신청서 작성 스튜디오</h1>
 
       <textarea value={bizInfo} onChange={(e) => setBizInfo(e.target.value)} rows={5}
@@ -95,7 +104,7 @@ export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string
         </>
       ) : (
         <GrantAttachmentPicker onPick={(file, gt) => onReady(file, bizInfo, gt)}
-          initialPblancId={initialPblancId} initialGrantTitle={grantTitle} />
+          initialPblancId={initialPblancId} initialGrantTitle={grantTitle} grantUrl={grantUrl} />
       )}
     </div>
   );

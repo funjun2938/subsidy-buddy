@@ -5,7 +5,7 @@
  *   - 로딩 / 에러 / 결과 3가지 상태 렌더링
  *   - source 배지: "Live API" vs "Seed"
  *   - 적합도 높음 카운트 계산
- *   - AI 신청서 생성 / 전문가 상담 링크 query 구성
+ *   - AI 신청서 생성 링크 query 구성
  *   - keywords 파싱 (콤마 분리, 빈 값 필터)
  *   - 결과 0개 시 empty state
  *   - SaveMatchSection 은 matches > 0 때만 노출
@@ -551,12 +551,13 @@ describe("ResultsPage: 액션 링크", () => {
     });
   });
 
-  it("'전문가 상담' 링크 노출", async () => {
+  it("'전문가 상담' 링크 제거됨", async () => {
     mockMatchSuccess(sampleMatches, 100, "seed");
     render(<ResultsPage />);
     await waitFor(() => {
-      expect(screen.getByText("전문가 상담")).toBeInTheDocument();
+      expect(screen.getByText("AI 신청서 생성")).toBeInTheDocument();
     });
+    expect(screen.queryByText("전문가 상담")).not.toBeInTheDocument();
   });
 
   it("AI 신청서 생성 링크는 /generate 로", async () => {
@@ -565,15 +566,6 @@ describe("ResultsPage: 액션 링크", () => {
     await waitFor(() => {
       const link = screen.getByText("AI 신청서 생성").closest("a")!;
       expect(link.getAttribute("href")!.startsWith("/generate")).toBe(true);
-    });
-  });
-
-  it("전문가 상담 링크는 /experts 로", async () => {
-    mockMatchSuccess(sampleMatches, 100, "seed");
-    render(<ResultsPage />);
-    await waitFor(() => {
-      const link = screen.getByText("전문가 상담").closest("a")!;
-      expect(link.getAttribute("href")!.startsWith("/experts")).toBe(true);
     });
   });
 
@@ -605,18 +597,6 @@ describe("ResultsPage: 액션 링크", () => {
     });
   });
 
-  it("/experts 링크에 region 쿼리 포함", async () => {
-    mockMatchSuccess(sampleMatches, 100, "seed");
-    setSearchParams({
-      bizType: "IT", revenue: "1억", region: "서울",
-      bizAge: "1~3년", ceoAge: "30대",
-    });
-    render(<ResultsPage />);
-    await waitFor(() => {
-      const link = screen.getByText("전문가 상담").closest("a")!;
-      expect(link.getAttribute("href")).toContain("region=");
-    });
-  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

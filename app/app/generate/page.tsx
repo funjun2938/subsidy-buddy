@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDocSession } from "./hooks/useDocSession";
 import { useDocTokens } from "@/lib/docTokens";
 import { StudioEntry } from "./components/StudioEntry";
@@ -12,6 +13,12 @@ import { recordDoc } from "@/lib/userActivity";
 export default function StudioPage() {
   const s = useDocSession();
   const tokens = useDocTokens();
+  const router = useRouter();
+  // 이전 화면으로: 히스토리가 있으면 뒤로, 없으면 매칭 결과로.
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/match");
+  };
   const [bizInfo, setBizInfo] = useState("");
   // 모바일에선 작성/미리보기를 한 화면에 둘 수 없어 탭으로 전환한다.
   const [mobileTab, setMobileTab] = useState<"chat" | "preview">("chat");
@@ -84,7 +91,7 @@ export default function StudioPage() {
   };
 
   if (!s.structure) {
-    return <StudioEntry onReady={(file, bi, grantTitle) => {
+    return <StudioEntry onBack={handleBack} onReady={(file, bi, grantTitle) => {
       const merged = grantTitle.trim() ? `지원사업명: ${grantTitle.trim()}\n${bi}` : bi;
       setBizInfo(merged);
       recordDoc(grantTitle.trim() || file.name.replace(/\.hwpx?$/i, ""));
@@ -111,6 +118,7 @@ export default function StudioPage() {
       <div className="flex-1 flex min-h-0">
         <div className={`${mobileTab === "chat" ? "flex" : "hidden"} md:flex w-full md:w-[42%] md:shrink-0 min-h-0`}>
           <ChatPanel structure={s.structure} valueMap={s.valueMap} messages={s.messages} busy={s.busy}
+            onBack={handleBack}
             onSend={handleSend} onUndo={s.undo} canUndo={s.canUndo}
             onExport={s.exportDoc} onExportHwpx={handleHwpxDownload}
             onShowPreview={() => setMobileTab("preview")}

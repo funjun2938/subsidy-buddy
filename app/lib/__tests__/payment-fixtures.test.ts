@@ -9,30 +9,26 @@ import { PLANS, type PlanId } from "@/lib/payment-plans";
  * 사고를 막기 위해 의도적으로 verbose하게 짠다.
  */
 
-const ALL_PLAN_IDS: PlanId[] = ["premium", "business", "expert"];
+const ALL_PLAN_IDS: PlanId[] = ["premium", "business"];
 
 const PRICE_TABLE: Record<PlanId, number> = {
   premium: 9900,
   business: 49000,
-  expert: 50000,
 };
 
 const NAME_TABLE: Record<PlanId, string> = {
   premium: "프리미엄 멤버십",
   business: "비즈니스 멤버십",
-  expert: "전문가 신청 대행",
 };
 
 const TYPE_TABLE: Record<PlanId, "subscription" | "single"> = {
   premium: "subscription",
   business: "subscription",
-  expert: "single",
 };
 
 const FEATURE_COUNT_TABLE: Record<PlanId, number> = {
   premium: 5,
-  business: 5,
-  expert: 4,
+  business: 4,
 };
 
 describe("PLANS fixture invariants", () => {
@@ -92,14 +88,9 @@ describe("pricing domain rules", () => {
   });
 
   describe("single-payment pricing", () => {
-    it("there is exactly 1 single-payment plan", () => {
+    it("there are no single-payment plans", () => {
       const singles = ALL_PLAN_IDS.filter((id) => TYPE_TABLE[id] === "single");
-      expect(singles.length).toBe(1);
-    });
-
-    it("expert is the single-payment plan", () => {
-      const singles = ALL_PLAN_IDS.filter((id) => TYPE_TABLE[id] === "single");
-      expect(singles[0]).toBe("expert");
+      expect(singles.length).toBe(0);
     });
   });
 
@@ -258,12 +249,6 @@ describe("pricing domain rules", () => {
     it("business is at most 10x premium (no overshoot)", () => {
       expect(PLANS.business.price).toBeLessThanOrEqual(PLANS.premium.price * 10);
     });
-
-    it("expert one-time is comparable to one month of business", () => {
-      const ratio = PLANS.expert.price / PLANS.business.price;
-      expect(ratio).toBeGreaterThan(0.5);
-      expect(ratio).toBeLessThan(2);
-    });
   });
 
   describe("known feature strings (regression locks)", () => {
@@ -283,8 +268,8 @@ describe("pricing domain rules", () => {
       expect(PLANS.premium.features).toContain("마감 알림 (D-7, D-3, D-1)");
     });
 
-    it("premium includes literal '전문가 매칭 10% 할인'", () => {
-      expect(PLANS.premium.features).toContain("전문가 매칭 10% 할인");
+    it("premium includes literal '신규 공고 실시간 알림'", () => {
+      expect(PLANS.premium.features).toContain("신규 공고 실시간 알림");
     });
 
     it("business includes literal '프리미엄 전체 기능 포함'", () => {
@@ -295,32 +280,12 @@ describe("pricing domain rules", () => {
       expect(PLANS.business.features).toContain("AI 신청서 생성 무제한");
     });
 
-    it("business includes literal '전문가 1:1 전담 배정'", () => {
-      expect(PLANS.business.features).toContain("전문가 1:1 전담 배정");
-    });
-
     it("business includes literal '신청 대행 수수료 50% 할인'", () => {
       expect(PLANS.business.features).toContain("신청 대행 수수료 50% 할인");
     });
 
     it("business includes literal '합격률 분석 리포트'", () => {
       expect(PLANS.business.features).toContain("합격률 분석 리포트");
-    });
-
-    it("expert includes literal '1:1 전문가 배정'", () => {
-      expect(PLANS.expert.features).toContain("1:1 전문가 배정");
-    });
-
-    it("expert includes literal '서류 검토 및 보완'", () => {
-      expect(PLANS.expert.features).toContain("서류 검토 및 보완");
-    });
-
-    it("expert includes literal '신청서 직접 제출'", () => {
-      expect(PLANS.expert.features).toContain("신청서 직접 제출");
-    });
-
-    it("expert includes literal '성공 시 추가 수수료 10~15%'", () => {
-      expect(PLANS.expert.features).toContain("성공 시 추가 수수료 10~15%");
     });
   });
 });

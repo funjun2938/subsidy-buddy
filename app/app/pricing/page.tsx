@@ -55,7 +55,6 @@ const plans = [
     features: [
       { text: "프리미엄 전체 기능 포함", included: true },
       { text: "AI 신청서 생성 무제한", included: true },
-      { text: "전문가 1:1 전담 배정", included: true },
       { text: "신청 대행 수수료 50% 할인", included: true },
       { text: "합격률 분석 리포트", included: true },
       { text: "R&D 과제 특화 분석", included: true },
@@ -121,8 +120,8 @@ export default function PricingPage() {
 
       {/* 추가 서비스 */}
       <div className="mt-16 text-center">
-        <h2 className="text-xl font-bold mb-6">AI · 전문가 서비스</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+        <h2 className="text-xl font-bold mb-6">AI 신청서 서비스</h2>
+        <div className="grid grid-cols-1 gap-4 max-w-md mx-auto">
           <div className="glass rounded-2xl p-6 border border-white/5">
             <div className="text-2xl mb-3">📝</div>
             <h3 className="font-bold mb-1">AI 신청서 생성</h3>
@@ -130,15 +129,6 @@ export default function PricingPage() {
             <div className="text-2xl font-black text-violet-400">무료 토큰<span className="text-sm text-gray-500 font-normal"> 제공</span></div>
             <Link href="/generate" className="mt-4 block text-xs text-violet-400 hover:text-violet-300 transition">
               지금 사용해보기 →
-            </Link>
-          </div>
-          <div className="glass rounded-2xl p-6 border border-white/5">
-            <div className="text-2xl mb-3">👨‍💼</div>
-            <h3 className="font-bold mb-1">전문가 신청 대행</h3>
-            <p className="text-xs text-gray-500 mb-3">검증된 세무사·변리사·노무사가 직접 대행</p>
-            <div className="text-2xl font-black text-pink-400">10~15<span className="text-sm text-gray-500 font-normal">% 수수료</span></div>
-            <Link href="/checkout?plan=expert" className="mt-4 block text-xs text-pink-400 hover:text-pink-300 transition">
-              착수금 결제하기 →
             </Link>
           </div>
         </div>

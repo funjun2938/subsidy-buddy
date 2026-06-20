@@ -73,13 +73,6 @@ describe("CheckoutPage", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders expert plan summary", async () => {
-      await renderCheckout("expert");
-      expect(
-        await screen.findByText("전문가 신청 대행"),
-      ).toBeInTheDocument();
-    });
-
     it("renders '결제하기' heading", async () => {
       await renderCheckout("premium");
       expect(await screen.findByText("결제하기")).toBeInTheDocument();
@@ -95,11 +88,6 @@ describe("CheckoutPage", () => {
       expect(await screen.findByText("월간 구독")).toBeInTheDocument();
     });
 
-    it("renders '단건 결제' label for expert", async () => {
-      await renderCheckout("expert");
-      expect(await screen.findByText("단건 결제")).toBeInTheDocument();
-    });
-
     it("renders price 9,900원 for premium", async () => {
       await renderCheckout("premium");
       const prices = await screen.findAllByText(/9,900원/);
@@ -109,12 +97,6 @@ describe("CheckoutPage", () => {
     it("renders price 49,000원 for business", async () => {
       await renderCheckout("business");
       const prices = await screen.findAllByText(/49,000원/);
-      expect(prices.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it("renders price 50,000원 for expert", async () => {
-      await renderCheckout("expert");
-      const prices = await screen.findAllByText(/50,000원/);
       expect(prices.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -183,34 +165,20 @@ describe("CheckoutPage", () => {
         "전체 매칭 결과 보기",
         "AI 신청서 생성 월 3건",
         "마감 알림 (D-7, D-3, D-1)",
-        "전문가 매칭 10% 할인",
+        "신규 공고 실시간 알림",
       ];
       for (const f of features) {
         expect(await screen.findByText(f)).toBeInTheDocument();
       }
     });
 
-    it("business: shows all 5 features", async () => {
+    it("business: shows all 4 features", async () => {
       await renderCheckout("business");
       const features = [
         "프리미엄 전체 기능 포함",
         "AI 신청서 생성 무제한",
-        "전문가 1:1 전담 배정",
         "신청 대행 수수료 50% 할인",
         "합격률 분석 리포트",
-      ];
-      for (const f of features) {
-        expect(await screen.findByText(f)).toBeInTheDocument();
-      }
-    });
-
-    it("expert: shows all 4 features", async () => {
-      await renderCheckout("expert");
-      const features = [
-        "1:1 전문가 배정",
-        "서류 검토 및 보완",
-        "신청서 직접 제출",
-        "성공 시 추가 수수료 10~15%",
       ];
       for (const f of features) {
         expect(await screen.findByText(f)).toBeInTheDocument();
@@ -269,15 +237,6 @@ describe("CheckoutPage", () => {
       });
       const args = mockWidgets.setAmount.mock.calls[0][0];
       expect(args.value).toBe(49000);
-    });
-
-    it("setAmount value matches plan price (expert → 50000)", async () => {
-      await renderCheckout("expert");
-      await waitFor(() => {
-        expect(mockWidgets.setAmount).toHaveBeenCalled();
-      });
-      const args = mockWidgets.setAmount.mock.calls[0][0];
-      expect(args.value).toBe(50000);
     });
 
     it("calls renderPaymentMethods with #payment-method selector", async () => {

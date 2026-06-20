@@ -16,10 +16,8 @@ describe("getPlan", () => {
     expect(plan?.type).toBe("subscription");
   });
 
-  it("returns the expert plan as single-payment", () => {
-    const plan = getPlan("expert");
-    expect(plan?.price).toBe(50000);
-    expect(plan?.type).toBe("single");
+  it("returns null for removed expert plan id", () => {
+    expect(getPlan("expert")).toBeNull();
   });
 
   it("returns null for unknown plan id", () => {
@@ -37,8 +35,8 @@ describe("getPlan", () => {
 });
 
 describe("PLANS registry", () => {
-  it("contains exactly the 3 known plans", () => {
-    expect(Object.keys(PLANS).sort()).toEqual(["business", "expert", "premium"]);
+  it("contains exactly the 2 known plans", () => {
+    expect(Object.keys(PLANS).sort()).toEqual(["business", "premium"]);
   });
 
   it("every plan has non-empty features", () => {
@@ -60,7 +58,6 @@ describe("generateOrderId", () => {
   it("starts with order_<planId>_", () => {
     expect(generateOrderId("premium")).toMatch(/^order_premium_/);
     expect(generateOrderId("business")).toMatch(/^order_business_/);
-    expect(generateOrderId("expert")).toMatch(/^order_expert_/);
   });
 
   it("generates a unique id on each call", () => {

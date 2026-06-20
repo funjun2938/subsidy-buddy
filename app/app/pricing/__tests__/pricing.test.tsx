@@ -6,7 +6,7 @@ import PricingPage from "@/app/pricing/page";
  * /pricing 페이지 테스트
  *
  * 결제 퍼널의 시작점.
- * 3개 구독 플랜 + 2개 단건 서비스 카드 + CTA 라우팅 검증.
+ * 3개 구독 플랜 + AI 신청서 서비스 카드 + CTA 라우팅 검증.
  */
 
 const SUBSCRIPTION_PLANS = [
@@ -32,7 +32,6 @@ const SUBSCRIPTION_PLANS = [
 
 const SINGLE_SERVICES = [
   { name: "AI 신청서 생성", price: "무료 토큰", href: "/generate" },
-  { name: "전문가 신청 대행", price: "10~15", href: "/checkout?plan=expert" },
 ];
 
 describe("PricingPage", () => {
@@ -192,11 +191,6 @@ describe("PricingPage", () => {
         expect(screen.getByText("AI 신청서 생성 무제한")).toBeInTheDocument();
       });
 
-      it("includes 전문가 1:1 전담 배정", () => {
-        render(<PricingPage />);
-        expect(screen.getByText("전문가 1:1 전담 배정")).toBeInTheDocument();
-      });
-
       it("includes 신청 대행 수수료 50% 할인", () => {
         render(<PricingPage />);
         expect(
@@ -222,9 +216,9 @@ describe("PricingPage", () => {
   });
 
   describe("single services", () => {
-    it("renders the 'AI · 전문가 서비스' section heading", () => {
+    it("renders the 'AI 신청서 서비스' section heading", () => {
       render(<PricingPage />);
-      expect(screen.getByText("AI · 전문가 서비스")).toBeInTheDocument();
+      expect(screen.getByText("AI 신청서 서비스")).toBeInTheDocument();
     });
 
     it.each(SINGLE_SERVICES)(
@@ -240,9 +234,9 @@ describe("PricingPage", () => {
       expect(screen.getAllByText(/무료 토큰/).length).toBeGreaterThanOrEqual(1);
     });
 
-    it("전문가 대행 fee is 10~15%", () => {
+    it("does not render 전문가 신청 대행 service", () => {
       render(<PricingPage />);
-      expect(screen.getByText("10~15")).toBeInTheDocument();
+      expect(screen.queryByText("전문가 신청 대행")).not.toBeInTheDocument();
     });
 
     it("AI 신청서 link routes to /generate", () => {
@@ -251,10 +245,10 @@ describe("PricingPage", () => {
       expect(link?.getAttribute("href")).toBe("/generate");
     });
 
-    it("전문가 대행 link routes to /checkout?plan=expert", () => {
-      render(<PricingPage />);
-      const link = screen.getByText("착수금 결제하기 →").closest("a");
-      expect(link?.getAttribute("href")).toBe("/checkout?plan=expert");
+    it("does not link to /checkout?plan=expert anywhere", () => {
+      const { container } = render(<PricingPage />);
+      const expertLink = container.querySelector('a[href="/checkout?plan=expert"]');
+      expect(expertLink).toBeNull();
     });
   });
 
@@ -265,10 +259,9 @@ describe("PricingPage", () => {
       expect(grid).not.toBeNull();
     });
 
-    it("single services use 2 columns on sm+", () => {
-      const { container } = render(<PricingPage />);
-      const grid = container.querySelector(".sm\\:grid-cols-2");
-      expect(grid).not.toBeNull();
+    it("AI 신청서 서비스 section is rendered", () => {
+      render(<PricingPage />);
+      expect(screen.getByText("AI 신청서 서비스")).toBeInTheDocument();
     });
 
     it("plans use glass-style cards", () => {
@@ -301,12 +294,6 @@ describe("PricingPage", () => {
       render(<PricingPage />);
       const link = screen.getByText("비즈니스 시작").closest("a");
       expect(link?.getAttribute("href")).toContain("plan=business");
-    });
-
-    it("전문가 대행 CTA carries plan=expert query param", () => {
-      render(<PricingPage />);
-      const link = screen.getByText("착수금 결제하기 →").closest("a");
-      expect(link?.getAttribute("href")).toContain("plan=expert");
     });
 
     it("무료 CTA does NOT enter payment funnel", () => {

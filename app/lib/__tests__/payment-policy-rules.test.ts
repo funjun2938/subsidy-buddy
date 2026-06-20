@@ -48,8 +48,8 @@ describe("정책: 프리미엄 핵심 약속", () => {
     expect(PLANS.premium.features).toContain("마감 알림 (D-7, D-3, D-1)");
   });
 
-  it("전문가 매칭 할인율 명시", () => {
-    expect(PLANS.premium.features).toContain("전문가 매칭 10% 할인");
+  it("신규 공고 실시간 알림 명시", () => {
+    expect(PLANS.premium.features).toContain("신규 공고 실시간 알림");
   });
 });
 
@@ -64,10 +64,6 @@ describe("정책: 비즈니스 핵심 약속", () => {
     ).toBe(true);
   });
 
-  it("1:1 전문가 배정", () => {
-    expect(PLANS.business.features).toContain("전문가 1:1 전담 배정");
-  });
-
   it("수수료 50% 할인", () => {
     expect(PLANS.business.features).toContain("신청 대행 수수료 50% 할인");
   });
@@ -77,35 +73,11 @@ describe("정책: 비즈니스 핵심 약속", () => {
   });
 });
 
-describe("정책: 전문가 (단건) 약속", () => {
-  it("단건 결제 (구독 아님)", () => {
-    expect(PLANS.expert.type).toBe("single");
-  });
-
-  it("성공 수수료 명시 (10~15%)", () => {
-    const fee = PLANS.expert.features.find((f) => /\d+~\d+%/.test(f));
-    expect(fee).toBeDefined();
-    expect(fee).toContain("10~15%");
-  });
-
-  it("1:1 배정 명시", () => {
-    expect(PLANS.expert.features).toContain("1:1 전문가 배정");
-  });
-
-  it("서류 검토 명시", () => {
-    expect(PLANS.expert.features).toContain("서류 검토 및 보완");
-  });
-
-  it("직접 제출 명시", () => {
-    expect(PLANS.expert.features).toContain("신청서 직접 제출");
-  });
-});
-
 describe("정책: 명명 규칙", () => {
   it("모든 플랜 이름이 명사형으로 끝남", () => {
     Object.values(PLANS).forEach((plan) => {
-      // 멤버십 or 신청 대행
-      expect(/멤버십$|대행$/.test(plan.name)).toBe(true);
+      // 멤버십
+      expect(/멤버십$/.test(plan.name)).toBe(true);
     });
   });
 
@@ -177,10 +149,6 @@ describe("정책: 시장 비교 (간접 회귀 가드)", () => {
     expect(PLANS.business.price).toBeGreaterThanOrEqual(39_000);
     expect(PLANS.business.price).toBeLessThanOrEqual(99_000);
   });
-
-  it("전문가 (착수금)는 50,000원 미만 (소상공인 진입 부담 최소화)", () => {
-    expect(PLANS.expert.price).toBeLessThanOrEqual(50_000);
-  });
 });
 
 describe("정책: 통합 시나리오 — 사장님 페르소나별 적합 플랜", () => {
@@ -195,17 +163,11 @@ describe("정책: 통합 시나리오 — 사장님 페르소나별 적합 플�
     expect(plan.price).toBeLessThan(100_000);
     expect(plan.features).toContain("AI 신청서 생성 무제한");
   });
-
-  it("R&D 과제 1회 신청 → 전문가 단건 추천", () => {
-    const plan = PLANS.expert;
-    expect(plan.type).toBe("single");
-    expect(plan.features.some((f) => f.includes("1:1"))).toBe(true);
-  });
 });
 
 describe("정책: 회귀 시 알림", () => {
-  it("플랜 추가 시 PLANS dict에 정확히 3개", () => {
-    expect(Object.keys(PLANS).length).toBe(3);
+  it("플랜 추가 시 PLANS dict에 정확히 2개", () => {
+    expect(Object.keys(PLANS).length).toBe(2);
   });
 
   it("새 type 추가 금지 (subscription/single)", () => {
