@@ -73,7 +73,8 @@ export function useDocTokens(): DocTokens {
   }, [refresh]);
 
   const percent = state.pro ? 0 : Math.min(100, Math.round((state.usedTokens / FREE_TOKEN_BUDGET) * 100));
-  const canUse = state.pro || state.usedTokens < FREE_TOKEN_BUDGET;
+  // 무료 생성 제한(3건/토큰 예산) 해제 — 항상 생성 가능. (게이지는 참고용으로만 유지)
+  const canUse = true;
 
   const consume = useCallback((tokens: number) => {
     const s = read();

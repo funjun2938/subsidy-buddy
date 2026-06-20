@@ -52,9 +52,14 @@ function ResultsContent() {
 
   const paramsString = searchParams.toString();
 
-  // 지역 우선 정렬 + 매칭율 50% 이하 숨김.
-  // 1) 내 지역 특화 → 2) 전국구 → 3) 그 외 지역, 각 그룹 내 매칭율(fitScore) 높은 순.
+  // 정렬: ① 지원금(금액) 있는 사업 먼저(단순 모집·참가 공고는 아래로) →
+  //       ② 내 지역 특화 → 전국구 → 그 외 → ③ 매칭율(fitScore) 높은 순. 50% 이하 숨김.
   const visibleMatches = useMemo(() => {
+    // 실제 지원 금액이 명시된 공고만 '지원금 있음'으로 본다(공고확인/미정/별도참조 제외).
+    const hasFunding = (m: MatchResult) => {
+      const a = m.grant.amount || "";
+      return /\d/.test(a) && /원/.test(a) && !/공고\s*확인|미정|별도|참조|추후|상이/.test(a);
+    };
     const tier = (m: MatchResult) => {
       const r = m.grant.region;
       if (r === condition.region) return 0;
@@ -63,7 +68,11 @@ function ResultsContent() {
     };
     return matches
       .filter((m) => (m.fitScore ?? 0) > 50)
-      .sort((a, b) => tier(a) - tier(b) || (b.fitScore ?? 0) - (a.fitScore ?? 0));
+      .sort((a, b) =>
+        (hasFunding(a) ? 0 : 1) - (hasFunding(b) ? 0 : 1) ||
+        tier(a) - tier(b) ||
+        (b.fitScore ?? 0) - (a.fitScore ?? 0),
+      );
   }, [matches, condition.region]);
 
   const highCount = visibleMatches.filter((m) => m.matchScore === "high").length;
