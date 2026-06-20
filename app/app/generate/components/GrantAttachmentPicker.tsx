@@ -57,9 +57,9 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
     return () => { cancelled = true; };
   }, []);
 
-  // 조회: 키워드로 공고 검색 (지역/제목/기관)
-  const search = useCallback(async () => {
-    const q = query.trim();
+  // 조회: 키워드로 공고 검색 (지역/제목/기관). q0 가 있으면 그걸로(자동검색용).
+  const search = useCallback(async (q0?: string) => {
+    const q = (q0 ?? query).trim();
     if (!q) return;
     recordSearch(q, "grant");
     setSearching(true);
@@ -104,9 +104,11 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
     }
   }, []);
 
-  // 공고 화면에서 넘어온 pblancId 가 있으면 진입 시 그 공고의 첨부를 자동 로드한다.
+  // 공고 화면에서 넘어오면 진입 즉시 첨부를 자동 표시한다.
+  // pblancId 있으면 그 공고 첨부를 바로 로드, 없으면 공고명으로 자동 검색.
   useEffect(() => {
-    if (initialPblancId) void loadAttachments(initialPblancId);
+    if (initialPblancId) { void loadAttachments(initialPblancId); return; }
+    if (initialGrantTitle) { setQuery(initialGrantTitle); void search(initialGrantTitle); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

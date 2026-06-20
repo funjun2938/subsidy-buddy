@@ -299,7 +299,12 @@ function Content() {
           <Link
             href={`/generate?${new URLSearchParams({
               grantTitle: grant.title,
-              ...(grant.id.startsWith("PBLN_") ? { pblancId: grant.id } : {}),
+              // 기업마당 공고 id 는 'biz-PBLN_…' → 'PBLN_…' 로 정규화해 첨부 자동로드에 사용
+              ...(grant.id.startsWith("biz-PBLN_")
+                ? { pblancId: grant.id.slice(4) }
+                : grant.id.startsWith("PBLN_")
+                  ? { pblancId: grant.id }
+                  : {}),
               ...(sp.get("summary") ? { bizInfo: sp.get("summary")! } : {}),
               ...(sp.get("bizType") ? { bizType: sp.get("bizType")! } : {}),
               ...(sp.get("keywords") ? { keywords: sp.get("keywords")! } : {}),

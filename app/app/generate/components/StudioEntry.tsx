@@ -17,7 +17,9 @@ export function StudioEntry({ onReady }: { onReady: (file: File, bizInfo: string
     const gt = sp.get("grantTitle") || "";
     const pid = sp.get("pblancId") || "";
     if (gt) setGrantTitle(gt);
-    if (pid) { setInitialPblancId(pid); setMode("grant"); }
+    // 공고에서 넘어오면(제목/ID 중 하나라도) '공고에서 첨부 불러오기' 모드로 랜딩.
+    if (gt || pid) setMode("grant");
+    if (pid) setInitialPblancId(pid);
 
     // 1) 분석된 사업 프로필(우선) — 라벨링해 칸 매핑이 잘 되게
     let composed = "";
