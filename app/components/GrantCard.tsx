@@ -119,8 +119,10 @@ export default function GrantCard({
   const { toggle, isFavorited } = useFavorites();
   const favorited = isFavorited(grant.id);
 
-  // 'AI신청서 작성 가능' 뱃지: 해당 공고에 '신청서' 이름의 .hwpx 가 (zip 아닌) 직접
-  // 첨부돼 AI 자동기입이 가능한 경우에만. 기업마당(biz-PBLN_) 공고만 첨부 조회 가능.
+  // 'AI신청서 작성 가능' 뱃지: 해당 공고에 '신청서' 이름의 한글 양식(.hwp/.hwpx)이
+  // (zip 아닌) 직접 첨부돼 스튜디오에서 AI 자동기입이 가능한 경우. 실제 정부 신청서는
+  // 대부분 .hwp 이고 우리 스튜디오는 rhwp 로 .hwp/.hwpx 모두 채움+미리보기+HWPX 다운로드
+  // 가 되므로 둘 다 인정. 기업마당(biz-PBLN_) 공고만 첨부 조회 가능.
   const [canAutoFill, setCanAutoFill] = useState(false);
   useEffect(() => {
     if (!grant.id.startsWith("biz-PBLN_")) return;
@@ -133,7 +135,7 @@ export default function GrantCard({
         const data = await res.json();
         const ok = (data.attachments || []).some(
           (a: { ext?: string; filename?: string }) =>
-            a.ext === "hwpx" && (a.filename || "").includes("신청서"),
+            (a.ext === "hwpx" || a.ext === "hwp") && (a.filename || "").includes("신청서"),
         );
         if (!cancelled && ok) setCanAutoFill(true);
       } catch { /* silent */ }
