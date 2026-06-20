@@ -195,21 +195,19 @@ export async function fetchKstartupGrants(): Promise<Grant[]> {
   };
 
   try {
+    // 페이지를 병렬로 받아 콜드 로딩 지연을 줄인다(순차 시 최대 ~30s → 병렬 ~수초).
+    // 한 페이지가 실패해도 나머지는 살리도록 allSettled 사용.
+    const settled = await Promise.allSettled(
+      Array.from({ length: MAX_PAGES }, (_, i) => fetchPage(i + 1)),
+    );
     const ongoing: KstartupItem[] = [];
-    let capped = false;
-    for (let page = 1; page <= MAX_PAGES; page++) {
-      const items = await fetchPage(page);
-      if (items.length === 0) break; // 더 이상 데이터 없음
-      ongoing.push(...items.filter(isOngoing));
-      if (ongoing.length >= ENOUGH) {
-        capped = true;
-        break;
-      }
-      if (page === MAX_PAGES && items.length === PER_PAGE) capped = true;
+    for (const r of settled) {
+      if (r.status === "fulfilled") ongoing.push(...r.value.filter(isOngoing));
     }
-
-    console.log(`[Crawler] K-Startup ongoing kept: ${ongoing.length}${capped ? " (capped)" : ""}`);
-    return ongoing.map(parseKstartupItem);
+    const capped = ongoing.length > ENOUGH;
+    const kept = capped ? ongoing.slice(0, ENOUGH) : ongoing;
+    console.log(`[Crawler] K-Startup ongoing kept: ${kept.length}${capped ? " (capped)" : ""}`);
+    return kept.map(parseKstartupItem);
   } catch (error) {
     console.error("[Crawler] K-Startup fetch error:", error);
     return [];
