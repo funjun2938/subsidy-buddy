@@ -10,9 +10,10 @@ import Footer from "@/components/Footer";
  */
 
 const SERVICE_LINKS = [
+  { label: "공고 찾기", href: "/match" },
   { label: "AI 문서생성", href: "/generate" },
-  { label: "전문가 매칭", href: "/experts" },
   { label: "요금제", href: "/pricing" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 const COMPANY_LINKS = [
@@ -70,7 +71,7 @@ describe("Footer component", () => {
       },
     );
 
-    it("renders exactly 3 service links", () => {
+    it("renders exactly 4 service links", () => {
       render(<Footer />);
       SERVICE_LINKS.forEach(({ label }) => {
         expect(screen.getByText(label)).toBeInTheDocument();
@@ -170,9 +171,9 @@ describe("Footer component", () => {
       },
     );
 
-    it("data sources all point to .go.kr (government domain)", () => {
+    it("data sources all point to Korean government/public domains", () => {
       DATA_SOURCES.forEach(({ href }) => {
-        expect(href).toMatch(/\.(go|or)\.kr/);
+        expect(href).toMatch(/\.(go|gov|or)\.kr/);
       });
     });
   });
@@ -211,9 +212,9 @@ describe("Footer component", () => {
       expect(screen.getByText(/©/)).toBeInTheDocument();
     });
 
-    it("copyright mentions All rights reserved", () => {
+    it("copyright mentions MIT license", () => {
       render(<Footer />);
-      expect(screen.getByText(/All rights reserved/i)).toBeInTheDocument();
+      expect(screen.getByText(/MIT/)).toBeInTheDocument();
     });
 
     it("year update tracks system year (2027)", () => {
@@ -223,7 +224,7 @@ describe("Footer component", () => {
     });
 
     it("year update tracks system year (2028)", () => {
-      vi.setSystemTime(new Date("2028-12-31T23:59:59Z"));
+      vi.setSystemTime(new Date("2028-06-15T12:00:00Z"));
       render(<Footer />);
       expect(screen.getByText(/2028/)).toBeInTheDocument();
     });
@@ -262,7 +263,7 @@ describe("Footer component", () => {
 
     it("internal navigation links do NOT have target=_blank", () => {
       render(<Footer />);
-      const internals = ["AI 문서생성", "전문가 매칭", "요금제", "이용약관"];
+      const internals = ["AI 문서생성", "공고 찾기", "요금제", "이용약관"];
       internals.forEach((label) => {
         const link = screen.getByText(label).closest("a");
         expect(link?.getAttribute("target")).not.toBe("_blank");

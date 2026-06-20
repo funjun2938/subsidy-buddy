@@ -31,7 +31,7 @@ const SUBSCRIPTION_PLANS = [
 ];
 
 const SINGLE_SERVICES = [
-  { name: "AI 신청서 생성", price: "29,900", href: "/generate" },
+  { name: "AI 신청서 생성", price: "무료 토큰", href: "/generate" },
   { name: "전문가 신청 대행", price: "10~15", href: "/checkout?plan=expert" },
 ];
 
@@ -45,7 +45,8 @@ describe("PricingPage", () => {
     it("heading is h1", () => {
       render(<PricingPage />);
       const heading = screen.getByText("요금제");
-      expect(heading.tagName).toBe("H1");
+      // The heading text is inside a <span> within <h1>
+      expect(heading.closest("h1")).not.toBeNull();
     });
 
     it("renders the subheading copy", () => {
@@ -167,14 +168,14 @@ describe("PricingPage", () => {
         ).toBeInTheDocument();
       });
 
-      it("includes AI 신청서 생성 월 3건", () => {
+      it("includes AI 신청서 생성·수정 무제한", () => {
         render(<PricingPage />);
-        expect(screen.getByText("AI 신청서 생성 월 3건")).toBeInTheDocument();
+        expect(screen.getByText("AI 신청서 생성·수정 무제한")).toBeInTheDocument();
       });
 
-      it("includes 전문가 매칭 할인 10%", () => {
+      it("includes 신규 공고 실시간 알림", () => {
         render(<PricingPage />);
-        expect(screen.getByText("전문가 매칭 할인 10%")).toBeInTheDocument();
+        expect(screen.getByText("신규 공고 실시간 알림")).toBeInTheDocument();
       });
     });
 
@@ -221,9 +222,9 @@ describe("PricingPage", () => {
   });
 
   describe("single services", () => {
-    it("renders the '건당 서비스' section heading", () => {
+    it("renders the 'AI · 전문가 서비스' section heading", () => {
       render(<PricingPage />);
-      expect(screen.getByText("건당 서비스")).toBeInTheDocument();
+      expect(screen.getByText("AI · 전문가 서비스")).toBeInTheDocument();
     });
 
     it.each(SINGLE_SERVICES)(
@@ -234,9 +235,9 @@ describe("PricingPage", () => {
       },
     );
 
-    it("AI 신청서 생성 price is 29,900", () => {
+    it("AI 신청서 생성 is free (무료 토큰 제공)", () => {
       render(<PricingPage />);
-      expect(screen.getByText("29,900")).toBeInTheDocument();
+      expect(screen.getAllByText(/무료 토큰/).length).toBeGreaterThanOrEqual(1);
     });
 
     it("전문가 대행 fee is 10~15%", () => {
@@ -246,7 +247,7 @@ describe("PricingPage", () => {
 
     it("AI 신청서 link routes to /generate", () => {
       render(<PricingPage />);
-      const link = screen.getByText("자세히 보기 →").closest("a");
+      const link = screen.getByText("지금 사용해보기 →").closest("a");
       expect(link?.getAttribute("href")).toBe("/generate");
     });
 

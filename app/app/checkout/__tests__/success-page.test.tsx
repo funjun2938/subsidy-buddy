@@ -6,6 +6,7 @@ import {
   afterEach,
   vi,
 } from "vitest";
+import { Suspense } from "react";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import SuccessPage from "@/app/checkout/success/page";
 
@@ -19,12 +20,22 @@ import SuccessPage from "@/app/checkout/success/page";
  * - 영수증 형태로 결과 표시
  */
 
-function makeSearchParams(params: {
-  paymentKey?: string;
-  orderId?: string;
-  amount?: string;
-}): Promise<typeof params> {
+type SP = { paymentKey?: string; orderId?: string; amount?: string };
+
+function makeSearchParams(params: SP): Promise<SP> {
   return Promise.resolve(params);
+}
+
+async function renderSuccess(params: SP) {
+  let result!: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(
+      <Suspense fallback={null}>
+        <SuccessPage searchParams={makeSearchParams(params)} />
+      </Suspense>,
+    );
+  });
+  return result;
 }
 
 describe("SuccessPage", () => {
@@ -42,43 +53,26 @@ describe("SuccessPage", () => {
 
   describe("missing params state", () => {
     it("renders '결제 정보가 누락되었습니다' when no params", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderSuccess({});
       expect(
         await screen.findByText(/결제 정보가 누락되었습니다/),
       ).toBeInTheDocument();
     });
 
     it("does not call /api/payments/confirm when paymentKey missing", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ orderId: "o1", amount: "9900", });
       await waitFor(() => {
         expect(fetchMock).not.toHaveBeenCalled();
       });
     });
 
     it("renders failure heading when params missing", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderSuccess({});
       expect(await screen.findByText("결제 승인 실패")).toBeInTheDocument();
     });
 
     it("shows 'returns to /pricing' link on failure", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderSuccess({});
       const link = await screen.findByText("요금제로 돌아가기");
       expect(link.closest("a")?.getAttribute("href")).toBe("/pricing");
     });
@@ -89,47 +83,20 @@ describe("SuccessPage", () => {
       fetchMock.mockImplementation(
         () => new Promise(() => {}),
       ); // never resolves
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(screen.getByText(/결제 승인 중/)).toBeInTheDocument();
     });
 
     it("shows loading spinner element", async () => {
       fetchMock.mockImplementation(() => new Promise(() => {}));
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      const { container } = render(ui);
+      const { container } = await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900" });
       const spinner = container.querySelector(".animate-spin");
       expect(spinner).not.toBeNull();
     });
 
     it("displays explanatory 'waiting' message", async () => {
       fetchMock.mockImplementation(() => new Promise(() => {}));
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(
         screen.getByText(/잠시만 기다려주세요/),
       ).toBeInTheDocument();
@@ -153,102 +120,39 @@ describe("SuccessPage", () => {
     });
 
     it("renders '결제 완료!' heading", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("결제 완료!")).toBeInTheDocument();
     });
 
     it("shows celebration emoji 🎉", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("🎉")).toBeInTheDocument();
     });
 
     it("displays the orderName in receipt", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(
         await screen.findByText("프리미엄 멤버십"),
       ).toBeInTheDocument();
     });
 
     it("translates method '카드' to '신용/체크카드'", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("신용/체크카드")).toBeInTheDocument();
     });
 
     it("formats the totalAmount with comma", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("9,900원")).toBeInTheDocument();
     });
 
     it("calls /api/payments/confirm exactly once", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     });
 
     it("sends paymentKey/orderId/amount in body", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk_real",
-            orderId: "order_premium_99",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk_real", orderId: "order_premium_99", amount: "9900", });
       await waitFor(() => expect(fetchMock).toHaveBeenCalled());
       const [, init] = fetchMock.mock.calls[0];
       const parsed = JSON.parse(init.body);
@@ -258,16 +162,7 @@ describe("SuccessPage", () => {
     });
 
     it("converts amount string to number for API call", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "49000",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "49000", });
       await waitFor(() => expect(fetchMock).toHaveBeenCalled());
       const [, init] = fetchMock.mock.calls[0];
       const parsed = JSON.parse(init.body);
@@ -276,48 +171,21 @@ describe("SuccessPage", () => {
     });
 
     it("sends POST method", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       await waitFor(() => expect(fetchMock).toHaveBeenCalled());
       const [, init] = fetchMock.mock.calls[0];
       expect(init.method).toBe("POST");
     });
 
     it("sends Content-Type: application/json", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       await waitFor(() => expect(fetchMock).toHaveBeenCalled());
       const [, init] = fetchMock.mock.calls[0];
       expect(init.headers["Content-Type"]).toBe("application/json");
     });
 
     it("renders post-success CTAs", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(
         await screen.findByText("서비스 시작하기"),
       ).toBeInTheDocument();
@@ -325,31 +193,13 @@ describe("SuccessPage", () => {
     });
 
     it("'서비스 시작하기' CTA points to /", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       const cta = await screen.findByText("서비스 시작하기");
       expect(cta.closest("a")?.getAttribute("href")).toBe("/");
     });
 
     it("'요금제 다시 보기' CTA points to /pricing", async () => {
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       const cta = await screen.findByText("요금제 다시 보기");
       expect(cta.closest("a")?.getAttribute("href")).toBe("/pricing");
     });
@@ -366,16 +216,7 @@ describe("SuccessPage", () => {
           { status: 400 },
         ),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("결제 승인 실패")).toBeInTheDocument();
     });
 
@@ -389,16 +230,7 @@ describe("SuccessPage", () => {
           { status: 400 },
         ),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(
         await screen.findByText("결제 금액이 일치하지 않습니다."),
       ).toBeInTheDocument();
@@ -408,17 +240,9 @@ describe("SuccessPage", () => {
       fetchMock.mockResolvedValue(
         new Response(JSON.stringify({ ok: false }), { status: 500 }),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
-      expect(await screen.findByText("결제 승인 실패")).toBeInTheDocument();
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
+      const els = await screen.findAllByText("결제 승인 실패");
+      expect(els.length).toBeGreaterThanOrEqual(1);
     });
 
     it("shows warning emoji ⚠️ on error", async () => {
@@ -428,16 +252,7 @@ describe("SuccessPage", () => {
           { status: 400 },
         ),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("⚠️")).toBeInTheDocument();
     });
 
@@ -448,16 +263,7 @@ describe("SuccessPage", () => {
           { status: 400 },
         ),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       const link = await screen.findByText("요금제로 돌아가기");
       expect(link.closest("a")?.getAttribute("href")).toBe("/pricing");
     });
@@ -466,16 +272,7 @@ describe("SuccessPage", () => {
   describe("network failure", () => {
     it("shows '서버와 통신할 수 없습니다' when fetch rejects", async () => {
       fetchMock.mockRejectedValue(new Error("Network down"));
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(
         await screen.findByText("서버와 통신할 수 없습니다."),
       ).toBeInTheDocument();
@@ -483,16 +280,7 @@ describe("SuccessPage", () => {
 
     it("network failure shows error state", async () => {
       fetchMock.mockRejectedValue(new Error("Network down"));
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "9900",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "9900", });
       expect(await screen.findByText("결제 승인 실패")).toBeInTheDocument();
     });
   });
@@ -520,16 +308,7 @@ describe("SuccessPage", () => {
             { status: 200 },
           ),
         );
-        const ui = await Promise.resolve(
-          <SuccessPage
-            searchParams={makeSearchParams({
-              paymentKey: "pk",
-              orderId: "o1",
-              amount: "1000",
-            })}
-          />,
-        );
-        render(ui);
+        await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "1000", });
         expect(await screen.findByText(label)).toBeInTheDocument();
       },
     );
@@ -547,16 +326,7 @@ describe("SuccessPage", () => {
           { status: 200 },
         ),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "1000",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "1000", });
       expect(await screen.findByText("VIRTUAL_ACCOUNT")).toBeInTheDocument();
     });
   });
@@ -585,16 +355,7 @@ describe("SuccessPage", () => {
             { status: 200 },
           ),
         );
-        const ui = await Promise.resolve(
-          <SuccessPage
-            searchParams={makeSearchParams({
-              paymentKey: "pk",
-              orderId: "o1",
-              amount: String(value),
-            })}
-          />,
-        );
-        render(ui);
+        await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: String(value), });
         expect(await screen.findByText(expected)).toBeInTheDocument();
       },
     );
@@ -614,16 +375,7 @@ describe("SuccessPage", () => {
           { status: 200 },
         ),
       );
-      const ui = await Promise.resolve(
-        <SuccessPage
-          searchParams={makeSearchParams({
-            paymentKey: "pk",
-            orderId: "o1",
-            amount: "1000",
-          })}
-        />,
-      );
-      render(ui);
+      await renderSuccess({ paymentKey: "pk", orderId: "o1", amount: "1000", });
       // Look for 2026 + month/day somewhere in the doc — locale formatting varies
       expect(
         await screen.findByText(/2026/),

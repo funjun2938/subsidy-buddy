@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { Suspense } from "react";
+import { render, screen, act } from "@testing-library/react";
 import FailPage from "@/app/checkout/fail/page";
 
 /**
@@ -15,50 +16,41 @@ function makeSearchParams(
   return Promise.resolve(params);
 }
 
+async function renderFail(params: { code?: string; message?: string; orderId?: string }) {
+  let result!: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(
+      <Suspense fallback={null}>
+        <FailPage searchParams={makeSearchParams(params)} />
+      </Suspense>,
+    );
+  });
+  return result;
+}
+
 describe("FailPage", () => {
   describe("rendering with no params", () => {
     it("renders fallback message when message missing", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       expect(
         screen.getByText(/결제 진행 중 문제가 발생했습니다/),
       ).toBeInTheDocument();
     });
 
     it("does not display error code block when code missing", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       expect(screen.queryByText(/에러 코드/)).toBeNull();
     });
   });
 
   describe("rendering with message", () => {
     it("displays provided message", async () => {
-      const ui = await Promise.resolve(
-        <FailPage
-          searchParams={makeSearchParams({
-            message: "잔액이 부족합니다.",
-          })}
-        />,
-      );
-      render(ui);
+      await renderFail({ message: "잔액이 부족합니다.", });
       expect(screen.getByText("잔액이 부족합니다.")).toBeInTheDocument();
     });
 
     it("displays a longer toss error message verbatim", async () => {
-      const ui = await Promise.resolve(
-        <FailPage
-          searchParams={makeSearchParams({
-            message:
-              "사용자가 결제를 취소하였습니다. 다시 시도해주세요.",
-          })}
-        />,
-      );
-      render(ui);
+      await renderFail({ message: "사용자가 결제를 취소하였습니다. 다시 시도해주세요.", });
       expect(
         screen.getByText(/사용자가 결제를 취소하였습니다/),
       ).toBeInTheDocument();
@@ -67,27 +59,13 @@ describe("FailPage", () => {
 
   describe("rendering with code", () => {
     it("displays code in dedicated block", async () => {
-      const ui = await Promise.resolve(
-        <FailPage
-          searchParams={makeSearchParams({
-            code: "PAY_PROCESS_CANCELED",
-          })}
-        />,
-      );
-      render(ui);
+      await renderFail({ code: "PAY_PROCESS_CANCELED", });
       expect(screen.getByText("에러 코드")).toBeInTheDocument();
       expect(screen.getByText("PAY_PROCESS_CANCELED")).toBeInTheDocument();
     });
 
     it("code text uses font-mono style", async () => {
-      const ui = await Promise.resolve(
-        <FailPage
-          searchParams={makeSearchParams({
-            code: "INVALID_CARD",
-          })}
-        />,
-      );
-      const { container } = render(ui);
+      const { container } = await renderFail({ code: "INVALID_CARD" });
       const mono = container.querySelector(".font-mono");
       expect(mono?.textContent).toBe("INVALID_CARD");
     });
@@ -95,15 +73,7 @@ describe("FailPage", () => {
 
   describe("rendering with both code and message", () => {
     it("displays both code and message", async () => {
-      const ui = await Promise.resolve(
-        <FailPage
-          searchParams={makeSearchParams({
-            code: "INVALID_REQUEST",
-            message: "주문 정보가 올바르지 않습니다.",
-          })}
-        />,
-      );
-      render(ui);
+      await renderFail({ code: "INVALID_REQUEST", message: "주문 정보가 올바르지 않습니다.", });
       expect(screen.getByText("INVALID_REQUEST")).toBeInTheDocument();
       expect(
         screen.getByText("주문 정보가 올바르지 않습니다."),
@@ -113,71 +83,47 @@ describe("FailPage", () => {
 
   describe("emoji and heading", () => {
     it("renders the 😔 emoji", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       expect(screen.getByText("😔")).toBeInTheDocument();
     });
 
     it("renders '결제에 실패했어요' heading", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       expect(screen.getByText("결제에 실패했어요")).toBeInTheDocument();
     });
   });
 
   describe("recovery actions", () => {
     it("renders '다시 시도하기' CTA", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       expect(screen.getByText("다시 시도하기")).toBeInTheDocument();
     });
 
     it("'다시 시도하기' links to /pricing", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       const link = screen.getByText("다시 시도하기").closest("a");
       expect(link?.getAttribute("href")).toBe("/pricing");
     });
 
     it("renders '홈으로' CTA", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       expect(screen.getByText("홈으로")).toBeInTheDocument();
     });
 
     it("'홈으로' links to /", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       const link = screen.getByText("홈으로").closest("a");
       expect(link?.getAttribute("href")).toBe("/");
     });
 
     it("'다시 시도하기' uses gradient style (primary)", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       const cta = screen.getByText("다시 시도하기").closest("a");
       expect(cta?.className).toContain("bg-gradient-to-r");
     });
 
     it("'홈으로' uses subtle style (secondary)", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      render(ui);
+      await renderFail({});
       const cta = screen.getByText("홈으로").closest("a");
       expect(cta?.className).toContain("bg-white/5");
     });
@@ -185,19 +131,13 @@ describe("FailPage", () => {
 
   describe("layout", () => {
     it("uses centered max-w-md container", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      const { container } = render(ui);
+      const { container } = await renderFail({});
       const root = container.querySelector(".max-w-md");
       expect(root).not.toBeNull();
     });
 
     it("content is text-center", async () => {
-      const ui = await Promise.resolve(
-        <FailPage searchParams={makeSearchParams({})} />,
-      );
-      const { container } = render(ui);
+      const { container } = await renderFail({});
       const root = container.querySelector(".text-center");
       expect(root).not.toBeNull();
     });
@@ -217,10 +157,7 @@ describe("FailPage", () => {
     it.each(tossErrorSamples)(
       "displays toss code: %s",
       async (code) => {
-        const ui = await Promise.resolve(
-          <FailPage searchParams={makeSearchParams({ code })} />,
-        );
-        render(ui);
+        await renderFail({ code });
         expect(screen.getByText(code)).toBeInTheDocument();
       },
     );

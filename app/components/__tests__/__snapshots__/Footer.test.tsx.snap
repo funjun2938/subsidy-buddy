@@ -69,6 +69,14 @@ exports[`Footer component > snapshot > matches snapshot 1`] = `
           <li>
             <a
               class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
+              href="/match"
+            >
+              공고 찾기
+            </a>
+          </li>
+          <li>
+            <a
+              class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
               href="/generate"
             >
               AI 문서생성
@@ -77,17 +85,17 @@ exports[`Footer component > snapshot > matches snapshot 1`] = `
           <li>
             <a
               class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
-              href="/experts"
+              href="/pricing"
             >
-              전문가 매칭
+              요금제
             </a>
           </li>
           <li>
             <a
               class="text-xs text-[var(--muted)] hover:text-cyan-500 transition-colors"
-              href="/pricing"
+              href="/faq"
             >
-              요금제
+              FAQ
             </a>
           </li>
         </ul>

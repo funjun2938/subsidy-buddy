@@ -20,7 +20,7 @@ const TOSS_ERROR_CODES = {
   EXCEED_MAX_AUTH_COUNT: "인증 횟수를 초과했습니다.",
   EXCEED_MAX_DAILY_PAYMENT_COUNT: "일일 결제 한도를 초과했습니다.",
   NOT_AVAILABLE_PAYMENT: "현재 사용할 수 없는 결제 수단입니다.",
-  INVALID_STOPPED_CARD: "정지된 카드입니다.",
+  INVALID_STOPPED_CARD: "잘못된 카드입니다 (정지된 카드).",
   EXCEED_MAX_AMOUNT: "최대 결제 금액을 초과했습니다.",
   UNAUTHORIZED_KEY: "잘못된 API 키입니다.",
   USER_CANCEL_PAYMENT: "사용자가 결제를 취소하였습니다.",
