@@ -37,6 +37,9 @@ export async function GET(request: NextRequest) {
       },
       // 디버그용 — 응답 원인 추적 (한국 IP 차단 / 빈 페이지 등 식별)
       debug,
+    }, {
+      // 결과목록의 '작성 가능' 뱃지 등에서 공고별로 반복 호출되므로 CDN 캐시(6h+SWR).
+      headers: { "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400" },
     });
   } catch (e) {
     return Response.json(
