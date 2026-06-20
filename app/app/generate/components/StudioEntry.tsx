@@ -2,6 +2,14 @@
 import { useEffect, useState } from "react";
 import { GrantAttachmentPicker } from "./GrantAttachmentPicker";
 
+// 사업자등록번호 정규화: 숫자 10자리면 XXX-XX-XXXXX 로 정형화, 아니면 빈 문자열.
+// OCR 오인식으로 가운데가 빠진 '549--00879' 같은 값을 그대로 자동기입하지 않기 위함
+// (불완전하면 칸을 비워 사용자가 직접 입력하게 둔다).
+function normalizeBizNo(v: string): string {
+  const d = (v || "").replace(/\D/g, "");
+  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}` : "";
+}
+
 export function StudioEntry({ onReady, onBack }: { onReady: (file: File, bizInfo: string, grantTitle: string) => void; onBack?: () => void }) {
   const [bizInfo, setBizInfo] = useState("");
   const [grantTitle, setGrantTitle] = useState("");
@@ -34,7 +42,8 @@ export function StudioEntry({ onReady, onBack }: { onReady: (file: File, bizInfo
         const arr = (v: unknown) => (Array.isArray(v) ? v.filter(Boolean) : []);
         const lines: string[] = [];
         if (s(p.companyName)) lines.push(`상호명(법인명): ${s(p.companyName)}`);
-        if (s(p.businessNumber)) lines.push(`사업자등록번호: ${s(p.businessNumber)}`);
+        const bizNo = normalizeBizNo(s(p.businessNumber));
+        if (bizNo) lines.push(`사업자등록번호: ${bizNo}`);
         if (s(p.region)) lines.push(`소재지(지역): ${s(p.region)}`);
         if (s(p.bizType)) lines.push(`업종: ${s(p.bizType)}`);
         if (s(p.bizAge)) lines.push(`업력: ${s(p.bizAge)}`);
