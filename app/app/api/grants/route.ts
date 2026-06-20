@@ -3,6 +3,9 @@ import { analyzeGrantAI } from "@/lib/ai";
 import { getAllGrants, findGrantById } from "@/lib/grants-store";
 import { UserCondition } from "@/lib/types";
 
+export const runtime = "nodejs";
+export const maxDuration = 120; // 콜드 캐시 시 공공API 2소스(기업마당+K-Startup) 로딩 여유
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const id = searchParams.get("id");

@@ -3,6 +3,9 @@ import { matchGrantsAI } from "@/lib/ai";
 import { getAllGrants } from "@/lib/grants-store";
 import { UserCondition } from "@/lib/types";
 
+export const runtime = "nodejs";
+export const maxDuration = 120; // 콜드 캐시 시 공공API 2소스 로딩+LLM 재랭킹 여유
+
 export async function POST(request: NextRequest) {
   let body: UserCondition;
   try {
