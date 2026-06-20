@@ -5,7 +5,7 @@ import { recordSearch } from "@/lib/userActivity";
 // 공고 → 첨부 신청서 자동 로드 → .hwp/.hwpx Blob 다운로드 → File 로 변환해 onPick.
 // (구 page.tsx 의 loadAttachments / 마감임박 칩 / download-attachment 흐름을 라이트 네이티브로 이식)
 
-interface GrantSummary { id: string; title: string; deadline: string; orgName?: string; }
+interface GrantSummary { id: string; title: string; deadline: string; orgName?: string; url?: string; }
 interface GrantAttachment {
   filename: string;
   ext: string;
@@ -37,11 +37,12 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [selectedUrl, setSelectedUrl] = useState("");
 
   const toSummaries = (raw: unknown): GrantSummary[] =>
     (((raw as { grants?: unknown[] })?.grants) || []).map((g) => {
-      const x = g as { id: string; title: string; deadline: string; orgName?: string };
-      return { id: x.id, title: x.title, deadline: x.deadline, orgName: x.orgName };
+      const x = g as { id: string; title: string; deadline: string; orgName?: string; url?: string };
+      return { id: x.id, title: x.title, deadline: x.deadline, orgName: x.orgName, url: x.url };
     });
 
   // 진입 시: 마감 임박 공고 6개를 기본 노출.
@@ -117,6 +118,7 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
 
   const pickGrant = (g: GrantSummary) => {
     setGrantTitle(g.title);
+    setSelectedUrl(g.url || "");   // 선택한 공고의 원문 URL 보관 (첨부 유무와 무관하게 노출)
     const pid = toPblancId(g.id);
     if (pid.startsWith("PBLN_")) {
       setPblancId(pid);
@@ -158,6 +160,7 @@ export function GrantAttachmentPicker({ onPick, initialPblancId = "", initialGra
   // 공고 원문 URL: 전달받은 grantUrl 우선, 없으면 PBLN_ id 로 기업마당 상세 URL 구성.
   const resolvedUrl =
     grantUrl ||
+    selectedUrl ||
     (pblancId.startsWith("PBLN_")
       ? `https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=${pblancId}`
       : "");
