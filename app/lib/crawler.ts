@@ -352,7 +352,8 @@ function guessTargetBizTypes(title: string, desc: string, target: string): strin
   if (/환경|에너지|친환경|탄소|신재생|그린|클린테크/.test(text)) types.push("환경·에너지");
 
   // 기존 업종
-  if (/음식|외식|식품|식당|카페/.test(text)) types.push("음식점·외식");
+  // '식품/음식'(식품 제조·수출·물류 등)만으로 음식점을 오태깅하지 않도록 외식업 한정
+  if (/음식점|외식|식당|카페|분식|제과|베이커리|프랜차이즈/.test(text)) types.push("음식점·외식");
   if (/유통|소매|상점|스토어|쇼핑/.test(text)) types.push("소매·유통");
   if (/제조|공장|생산|부품|소재/.test(text)) types.push("제조");
   if (/IT|소프트웨어|디지털|AI|ICT|플랫폼|SaaS|앱|앱개발|개발/.test(text)) types.push("IT·소프트웨어");
