@@ -144,9 +144,11 @@ export default function ConditionForm() {
       if (data.result) {
         const r = data.result as AnalyzedResult;
         setAnalyzed(r);
-        if (r.bizType) setBizType(r.bizType);
+        // 업종·지역은 '사용자 직접 선택'이 OCR보다 우선 — 이미 고른 값이 있으면 덮어쓰지 않는다.
+        // (생산지/영업지/본사 주소가 달라 OCR이 의도와 다른 지역을 잡는 경우 대비)
+        if (r.bizType && !bizType) setBizType(r.bizType);
         if (r.revenue) setRevenue(r.revenue);
-        if (r.region) setRegion(r.region);
+        if (r.region && !region) setRegion(r.region);
         if (r.bizAge) setBizAge(r.bizAge);
         if (r.ceoAge) setCeoAge(r.ceoAge);
         // AI가 추론한 값으로 보충 (사용자가 이미 입력한 경우엔 유지)
@@ -607,6 +609,10 @@ export default function ConditionForm() {
                 AI가 추출한 정보를 확인하고 필요하면 수정하세요
               </p>
             )}
+            <p className="text-[11px] text-cyan-500/90 bg-cyan-500/5 border border-cyan-500/15 rounded-lg px-3 py-2">
+              ※ <b>업종·지역은 직접 선택한 값이 매칭에 우선</b> 적용됩니다. (사업자등록증 인식값보다 우선 —
+              생산지/영업지 기준으로 받고 싶다면 해당 지역을 골라주세요)
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-[var(--muted)] mb-1">업종</label>
